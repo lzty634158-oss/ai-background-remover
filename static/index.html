@@ -1,0 +1,547 @@
+<!DOCTYPE html>
+<html lang="zh">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>图片背景去除器</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body {
+            min-height: 100vh;
+            background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%);
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+            padding: 40px 20px;
+        }
+        .container {
+            max-width: 800px;
+            margin: 0 auto;
+        }
+        .lang-switch {
+            position: absolute;
+            top: 20px;
+            right: 20px;
+        }
+        .lang-btn {
+            background: rgba(255,255,255,0.1);
+            border: 1px solid rgba(255,255,255,0.2);
+            color: #aaa;
+            padding: 8px 16px;
+            border-radius: 20px;
+            cursor: pointer;
+            font-size: 14px;
+            transition: all 0.3s;
+        }
+        .lang-btn:hover {
+            background: rgba(108,92,231,0.3);
+            color: #fff;
+        }
+        .lang-dropdown {
+            position: relative;
+            display: inline-block;
+        }
+        .lang-menu {
+            display: none;
+            position: absolute;
+            top: 100%;
+            right: 0;
+            background: #2a2a4a;
+            border: 1px solid rgba(255,255,255,0.1);
+            border-radius: 8px;
+            overflow: hidden;
+            min-width: 120px;
+            z-index: 100;
+        }
+        .lang-menu.show {
+            display: block;
+        }
+        .lang-menu button {
+            display: block;
+            width: 100%;
+            padding: 10px 16px;
+            background: none;
+            border: none;
+            color: #fff;
+            text-align: left;
+            cursor: pointer;
+            font-size: 14px;
+        }
+        .lang-menu button:hover {
+            background: rgba(108,92,231,0.3);
+        }
+        h1 {
+            text-align: center;
+            color: #fff;
+            font-size: 28px;
+            margin-bottom: 10px;
+        }
+        .subtitle {
+            text-align: center;
+            color: #888;
+            margin-bottom: 20px;
+        }
+        .examples {
+            text-align: center;
+            margin-bottom: 40px;
+        }
+        .examples-title {
+            color: #666;
+            font-size: 14px;
+            margin-bottom: 12px;
+        }
+        .examples-grid {
+            display: flex;
+            justify-content: center;
+            flex-wrap: wrap;
+            gap: 12px;
+        }
+        .examples-grid span {
+            background: rgba(108,92,231,0.15);
+            border: 1px solid rgba(108,92,231,0.3);
+            color: #aaa;
+            padding: 8px 16px;
+            border-radius: 20px;
+            font-size: 14px;
+        }
+        .upload-area {
+            border: 3px dashed #4a4a6a;
+            border-radius: 16px;
+            padding: 60px 20px;
+            text-align: center;
+            cursor: pointer;
+            transition: all 0.3s;
+            background: rgba(255,255,255,0.02);
+        }
+        .upload-area:hover {
+            border-color: #6c5ce7;
+            background: rgba(108,92,231,0.1);
+        }
+        .upload-area.dragover {
+            border-color: #6c5ce7;
+            background: rgba(108,92,231,0.2);
+        }
+        .upload-icon {
+            font-size: 48px;
+            margin-bottom: 16px;
+        }
+        .upload-text {
+            color: #aaa;
+            font-size: 16px;
+        }
+        .upload-text span {
+            color: #6c5ce7;
+        }
+        input[type="file"] {
+            display: none;
+        }
+        .result-area {
+            margin-top: 40px;
+            display: none;
+        }
+        .result-area.show {
+            display: block;
+        }
+        .images-row {
+            display: flex;
+            gap: 20px;
+            justify-content: center;
+            flex-wrap: wrap;
+        }
+        .image-box {
+            flex: 1;
+            min-width: 280px;
+            max-width: 350px;
+        }
+        .image-box h3 {
+            color: #fff;
+            margin-bottom: 12px;
+            font-size: 14px;
+        }
+        .image-box img {
+            width: 100%;
+            border-radius: 12px;
+            background: url('data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAABAAAAAQCAYAAAAf8/9hAAAAMUlEQVQ4T2N89uzZfwY8QFJSEp80A+OoAcMhYCiD4WtAHD6Xr79CdQOQfn2CYgxMTCUAQNgJg/UBTwAAAABJRU5ErkJggg==') repeat;
+        }
+        .download-btn {
+            display: inline-block;
+            margin-top: 16px;
+            padding: 12px 32px;
+            background: #6c5ce7;
+            color: #fff;
+            border: none;
+            border-radius: 8px;
+            font-size: 14px;
+            cursor: pointer;
+            text-decoration: none;
+            transition: background 0.3s;
+        }
+        .download-btn:hover {
+            background: #5b4cdb;
+        }
+        .loading {
+            display: none;
+            text-align: center;
+            padding: 40px;
+        }
+        .loading.show {
+            display: block;
+        }
+        .spinner {
+            width: 48px;
+            height: 48px;
+            border: 4px solid #333;
+            border-top-color: #6c5ce7;
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+            margin: 0 auto 16px;
+        }
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+        .loading-text {
+            color: #888;
+        }
+        .error {
+            background: rgba(231,76,60,0.1);
+            border: 1px solid #e74c3c;
+            color: #e74c3c;
+            padding: 16px;
+            border-radius: 8px;
+            margin-top: 20px;
+            text-align: center;
+        }
+    </style>
+</head>
+<body>
+    <div class="lang-switch">
+        <div class="lang-dropdown">
+            <button class="lang-btn" id="langBtn">🌐 EN</button>
+            <div class="lang-menu" id="langMenu">
+                <button data-lang="zh">中文</button>
+                <button data-lang="en">English</button>
+                <button data-lang="ja">日本語</button>
+                <button data-lang="ko">한국어</button>
+                <button data-lang="es">Español</button>
+                <button data-lang="fr">Français</button>
+                <button data-lang="de">Deutsch</button>
+            </div>
+        </div>
+    </div>
+    
+    <div class="container">
+        <h1 data-i18n="title">🖼️ 图片背景去除器</h1>
+        <p class="subtitle" data-i18n="subtitle">上传图片，自动去除背景</p>
+        
+        <div class="examples" data-i18n="examples">
+            <p class="examples-title" data-i18n="examplesTitle">支持去除以下背景：</p>
+            <div class="examples-grid" id="examplesGrid">
+                <span data-i18n="ex1">👤 人像</span>
+                <span data-i18n="ex2">🏍️ 产品</span>
+                <span data-i18n="ex3">🐱 动物</span>
+                <span data-i18n="ex4">🖼️ 图标</span>
+                <span data-i18n="ex5">🚗 汽车</span>
+                <span data-i18n="ex6">🏠 房屋</span>
+            </div>
+        </div>
+        
+        <div class="upload-area" id="uploadArea">
+            <div class="upload-icon">📁</div>
+            <p class="upload-text"><span data-i18n="uploadTip">点击或拖拽图片到这里</span><br><span data-i18n="formats">支持 PNG、JPG、WebP</span></p>
+            <input type="file" id="fileInput" accept="image/png,image/jpeg,image/webp">
+        </div>
+        
+        <div class="loading" id="loading">
+            <div class="spinner"></div>
+            <p class="loading-text" data-i18n="processing">正在处理图片，请稍候...</p>
+        </div>
+        
+        <div class="error" id="error" style="display:none;"></div>
+        
+        <div class="result-area" id="resultArea">
+            <div class="images-row">
+                <div class="image-box">
+                    <h3 data-i18n="original">📤 原图</h3>
+                    <img id="originalImg" src="" alt="Original">
+                </div>
+                <div class="image-box">
+                    <h3 data-i18n="result">📥 去背景后</h3>
+                    <img id="resultImg" src="" alt="Result">
+                    <a id="downloadBtn" class="download-btn" download="result.png" data-i18n="download">下载图片</a>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <script>
+        // 多语言翻译
+        const translations = {
+            zh: {
+                title: "🖼️ 图片背景去除器",
+                subtitle: "上传图片，自动去除背景",
+                examplesTitle: "支持去除以下背景：",
+                ex1: "👤 人像", ex2: "🏍️ 产品", ex3: "🐱 动物", ex4: "🖼️ 图标", ex5: "🚗 汽车", ex6: "🏠 房屋",
+                uploadTip: "点击或拖拽图片到这里",
+                formats: "支持 PNG、JPG、WebP",
+                processing: "正在处理图片，请稍候...",
+                original: "📤 原图",
+                result: "📥 去背景后",
+                download: "下载图片",
+                errorFile: "请上传图片文件",
+                errorSize: "图片大小不能超过 10MB",
+                errorApi: "处理失败，请稍后重试"
+            },
+            en: {
+                title: "🖼️ Background Remover",
+                subtitle: "Upload an image to remove background",
+                examplesTitle: "Supported backgrounds:",
+                ex1: "👤 Portrait", ex2: "🏍️ Product", ex3: "🐱 Animal", ex4: "🖼️ Logo", ex5: "🚗 Car", ex6: "🏠 Building",
+                uploadTip: "Click or drag image here",
+                formats: "Supports PNG, JPG, WebP",
+                processing: "Processing image, please wait...",
+                original: "📤 Original",
+                result: "📥 Removed Background",
+                download: "Download Image",
+                errorFile: "Please upload an image file",
+                errorSize: "Image size cannot exceed 10MB",
+                errorApi: "Processing failed, please try again"
+            },
+            ja: {
+                title: "🖼️ 背景削除ツール",
+                subtitle: "画像をアップロードして背景を削除",
+                examplesTitle: "対応可能な背景:",
+                ex1: "👤 人物", ex2: "🏍️ 製品", ex3: "🐱 動物", ex4: "🖼️ ロゴ", ex5: "🚗 車", ex6: "🏠 建物",
+                uploadTip: "クリックまたはドラッグして画像",
+                formats: "PNG、JPG、WebP対応",
+                processing: "画像を処理中...",
+                original: "📤 元画像",
+                result: "📥 背景削除後",
+                download: "画像をダウンロード",
+                errorFile: "画像ファイルをアップロードしてください",
+                errorSize: "画像サイズは10MB以内にしてください",
+                errorApi: "処理に失敗しました。もう一度お試しください"
+            },
+            ko: {
+                title: "🖼️ 배경 제거기",
+                subtitle: "이미지를 업로드하여 배경 제거",
+                examplesTitle: "제거 가능한 배경:",
+                ex1: "👤 인물", ex2: "🏍️ 제품", ex3: "🐱 동물", ex4: "🖼️ 로고", ex5: "🚗 자동차", ex6: "🏠 건물",
+                uploadTip: "여기를 클릭하거나 이미지를 드래그하세요",
+                formats: "PNG, JPG, WebP 지원",
+                processing: "이미지 처리 중...",
+                original: "📤 원본",
+                result: "📥 배경 제거됨",
+                download: "이미지 다운로드",
+                errorFile: "이미지 파일을 업로드하세요",
+                errorSize: "이미지 크기는 10MB를 초과할 수 없습니다",
+                errorApi: "처리 실패, 다시 시도해주세요"
+            },
+            es: {
+                title: "🖼️ Eliminador de Fondo",
+                subtitle: "Sube una imagen para eliminar el fondo",
+                examplesTitle: "Fondos soportados:",
+                ex1: "👤 Retrato", ex2: "🏍️ Producto", ex3: "🐱 Animal", ex4: "🖼️ Logo", ex5: "🚗 Coche", ex6: "🏠 Edificio",
+                uploadTip: "Haz clic o arrastra la imagen aquí",
+                formats: "Soporta PNG, JPG, WebP",
+                processing: "Procesando imagen...",
+                original: "📤 Original",
+                result: "📥 Fondo Eliminado",
+                download: "Descargar Imagen",
+                errorFile: "Por favor sube un archivo de imagen",
+                errorSize: "El tamaño no puede exceder 10MB",
+                errorApi: "Error al procesar, intenta de nuevo"
+            },
+            fr: {
+                title: "🖼️ Supprimeur d'Arrière-plan",
+                subtitle: "Téléchargez une image pour supprimer l'arrière-plan",
+                examplesTitle: "Arrières-plans pris en charge:",
+                ex1: "👤 Portrait", ex2: "🏍️ Produit", ex3: "🐱 Animal", ex4: "🖼️ Logo", ex5: "🚗 Voiture", ex6: "🏠 Bâtiment",
+                uploadTip: "Cliquez ou glissez l'image ici",
+                formats: "Supporte PNG, JPG, WebP",
+                processing: "Traitement en cours...",
+                original: "📤 Original",
+                result: "📥 Arrière-plan supprimé",
+                download: "Télécharger l'image",
+                errorFile: "Veuillez télécharger un fichier image",
+                errorSize: "La taille ne peut pas dépasser 10MB",
+                errorApi: "Échec du traitement, réessayez"
+            },
+            de: {
+                title: "🖼️ Hintergrundentferner",
+                subtitle: "Bild hochladen um Hintergrund zu entfernen",
+                examplesTitle: "Unterstützte Hintergründe:",
+                ex1: "👤 Porträt", ex2: "🏍️ Produkt", ex3: "🐱 Tier", ex4: "🖼️ Logo", ex5: "🚗 Auto", ex6: "🏠 Gebäude",
+                uploadTip: "Klicken oder Bild hierher ziehen",
+                formats: "Unterstützt PNG, JPG, WebP",
+                processing: "Bild wird verarbeitet...",
+                original: "📤 Original",
+                result: "📥 Hintergrund entfernt",
+                download: "Bild herunterladen",
+                errorFile: "Bitte Bilddatei hochladen",
+                errorSize: "Bildgröße darf 10MB nicht überschreiten",
+                errorApi: "Verarbeitung fehlgeschlagen, erneut versuchen"
+            }
+        };
+
+        // 国家语言映射
+        const countryLangMap = {
+            CN: 'zh', HK: 'zh', TW: 'zh', MO: 'zh',
+            JP: 'ja',
+            KR: 'ko',
+            US: 'en', GB: 'en', CA: 'en', AU: 'en',
+            ES: 'es',
+            FR: 'fr',
+            DE: 'de'
+        };
+
+        let currentLang = 'zh';
+
+        // 检测语言
+        function detectLanguage() {
+            // 1. 先检查 localStorage
+            const savedLang = localStorage.getItem('bg-remover-lang');
+            if (savedLang && translations[savedLang]) {
+                return savedLang;
+            }
+            
+            // 2. 检查浏览器语言
+            const browserLang = navigator.language || navigator.userLanguage;
+            const langCode = browserLang.split('-')[0];
+            if (translations[langCode]) {
+                return langCode;
+            }
+            
+            // 3. 尝试通过 IP 检测国家（使用 ipapi）
+            return 'zh'; // 默认中文
+        }
+
+        // 应用语言
+        function applyLanguage(lang) {
+            currentLang = lang;
+            localStorage.setItem('bg-remover-lang', lang);
+            
+            const t = translations[lang];
+            if (!t) return;
+            
+            // 更新所有带 data-i18n 的元素
+            document.querySelectorAll('[data-i18n]').forEach(el => {
+                const key = el.getAttribute('data-i18n');
+                if (t[key]) {
+                    // 保留 emoji
+                    const emojiMatch = el.innerHTML.match(/^(\S+\s+)/);
+                    if (emojiMatch && t[key].indexOf(emojiMatch[1]) === -1) {
+                        el.innerHTML = t[key];
+                    } else {
+                        el.textContent = t[key];
+                    }
+                }
+            });
+            
+            // 更新语言按钮显示
+            const langNames = { zh: '中文', en: 'EN', ja: '日本語', ko: '한국어', es: 'ES', fr: 'FR', de: 'DE' };
+            document.getElementById('langBtn').textContent = '🌐 ' + (langNames[lang] || 'EN');
+            
+            // 设置 html lang 属性
+            document.documentElement.lang = lang;
+        }
+
+        // 语言切换
+        document.getElementById('langBtn').addEventListener('click', () => {
+            document.getElementById('langMenu').classList.toggle('show');
+        });
+
+        document.querySelectorAll('.lang-menu button').forEach(btn => {
+            btn.addEventListener('click', (e) => {
+                applyLanguage(e.target.dataset.lang);
+                document.getElementById('langMenu').classList.remove('show');
+            });
+        });
+
+        // 点击其他地方关闭菜单
+        document.addEventListener('click', (e) => {
+            if (!e.target.closest('.lang-dropdown')) {
+                document.getElementById('langMenu').classList.remove('show');
+            }
+        });
+
+        // 初始化语言
+        applyLanguage(detectLanguage());
+
+        // 文件上传相关
+        const uploadArea = document.getElementById('uploadArea');
+        const fileInput = document.getElementById('fileInput');
+        const loading = document.getElementById('loading');
+        const resultArea = document.getElementById('resultArea');
+        const errorDiv = document.getElementById('error');
+        const originalImg = document.getElementById('originalImg');
+        const resultImg = document.getElementById('resultImg');
+        const downloadBtn = document.getElementById('downloadBtn');
+        
+        uploadArea.addEventListener('click', () => fileInput.click());
+        
+        uploadArea.addEventListener('dragover', (e) => {
+            e.preventDefault();
+            uploadArea.classList.add('dragover');
+        });
+        uploadArea.addEventListener('dragleave', () => {
+            uploadArea.classList.remove('dragover');
+        });
+        uploadArea.addEventListener('drop', (e) => {
+            e.preventDefault();
+            uploadArea.classList.remove('dragover');
+            if (e.dataTransfer.files.length) handleFile(e.dataTransfer.files[0]);
+        });
+        
+        fileInput.addEventListener('change', (e) => {
+            if (e.target.files.length) handleFile(e.target.files[0]);
+        });
+        
+        function handleFile(file) {
+            if (!file.type.startsWith('image/')) {
+                showError(translations[currentLang].errorFile);
+                return;
+            }
+            
+            const reader = new FileReader();
+            reader.onload = (e) => { originalImg.src = e.target.result; };
+            reader.readAsDataURL(file);
+            
+            uploadImage(file);
+        }
+        
+        async function uploadImage(file) {
+            loading.classList.add('show');
+            resultArea.classList.remove('show');
+            errorDiv.style.display = 'none';
+            
+            const formData = new FormData();
+            formData.append('file', file);
+            
+            try {
+                const response = await fetch('/api/remove-bg', {
+                    method: 'POST',
+                    body: formData
+                });
+                
+                const data = await response.json();
+                
+                if (!response.ok) {
+                    throw new Error(data.detail || '处理失败');
+                }
+                
+                resultImg.src = data.image_url;
+                downloadBtn.href = data.image_url;
+                resultArea.classList.add('show');
+            } catch (err) {
+                const errorMsg = translations[currentLang].errorApi;
+                showError(err.message || errorMsg);
+            } finally {
+                loading.classList.remove('show');
+            }
+        }
+        
+        function showError(msg) {
+            errorDiv.textContent = msg;
+            errorDiv.style.display = 'block';
+        }
+    </script>
+</body>
+</html>

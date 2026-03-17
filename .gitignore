@@ -1,0 +1,28 @@
+# 环境变量配置
+.env
+
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+venv/
+env/
+.venv/
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# 上传的结果图片
+static/results/
+
+# 日志
+*.log
+
+# 系统文件
+.DS_Store
+Thumbs.db
