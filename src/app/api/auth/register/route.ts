@@ -1,0 +1,55 @@
+import { NextRequest, NextResponse } from 'next/server';
+import { createUser, getUserByEmail, verifyPassword } from '@/lib/auth';
+import { generateToken } from '@/lib/crypto';
+
+export async function POST(request: NextRequest) {
+  try {
+    const { email, password } = await request.json();
+
+    if (!email || !password) {
+      return NextResponse.json(
+        { success: false, message: 'Email and password are required' },
+        { status: 400 }
+      );
+    }
+
+    // Check if user exists
+    const existingUser = getUserByEmail(email);
+    if (existingUser) {
+      return NextResponse.json(
+        { success: false, message: 'Email already registered' },
+        { status: 400 }
+      );
+    }
+
+    // Create new user
+    const user = createUser({ email, password });
+    if (!user) {
+      return NextResponse.json(
+        { success: false, message: 'Failed to create user' },
+        { status: 500 }
+      );
+    }
+
+    // Generate token
+    const token = generateToken(user.id);
+
+    return NextResponse.json({
+      success: true,
+      user: {
+        id: user.id,
+        email: user.email,
+        freeQuota: user.free_quota,
+        paidCredits: user.paid_credits,
+        createdAt: user.created_at,
+      },
+      token,
+    });
+  } catch (error) {
+    console.error('Registration error:', error);
+    return NextResponse.json(
+      { success: false, message: 'Internal server error' },
+      { status: 500 }
+    );
+  }
+}

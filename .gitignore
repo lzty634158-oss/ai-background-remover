@@ -1,0 +1,22 @@
+# 环境变量
+.env
+.env.local
+.env*.local
+
+# Node
+node_modules/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# Next.js
+.next/
+out/
+build/
+
+# 操作系统
+.DS_Store
+Thumbs.db
+
+# 上传的结果图片
+public/results/
