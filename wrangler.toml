@@ -1,2 +1,2 @@
-# Cloudflare Pages output config
+name = "ai-background-remover"
 pages_build_output_dir = ".vercel/output/static"
