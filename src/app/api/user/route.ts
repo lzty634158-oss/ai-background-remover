@@ -1,107 +1,49 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { verifyToken } from '@/lib/crypto';
-import { getUserById, addPaidCredits } from '@/lib/auth';
+
+function getWorkerUrl() {
+  if (process.env.NODE_ENV === 'production') return '';
+  return process.env.WORKER_DEV_URL || 'http://localhost:8787';
+}
 
 export async function GET(request: NextRequest) {
+  const workerUrl = getWorkerUrl();
+  const targetUrl = workerUrl ? `${workerUrl}/api/user` : '/api/user';
+
+  const authHeader = request.headers.get('authorization');
+  if (!authHeader) {
+    return NextResponse.json({ success: false, message: 'Unauthorized' }, { status: 401 });
+  }
+
   try {
-    const authHeader = request.headers.get('authorization');
-    const token = authHeader?.replace('Bearer ', '');
-
-    if (!token) {
-      return NextResponse.json(
-        { success: false, message: 'Unauthorized' },
-        { status: 401 }
-      );
-    }
-
-    const userId = verifyToken(token);
-    if (!userId) {
-      return NextResponse.json(
-        { success: false, message: 'Invalid token' },
-        { status: 401 }
-      );
-    }
-
-    const user = getUserById(userId);
-    if (!user) {
-      return NextResponse.json(
-        { success: false, message: 'User not found' },
-        { status: 404 }
-      );
-    }
-
-    return NextResponse.json({
-      success: true,
-      user: {
-        id: user.id,
-        email: user.email,
-        freeQuota: user.free_quota,
-        paidCredits: user.paid_credits,
-        createdAt: user.created_at,
-      },
-    });
+    const response = await fetch(targetUrl, { headers: { Authorization: authHeader } });
+    const data = await response.json();
+    return NextResponse.json(data, { status: response.status });
   } catch (error) {
-    console.error('Error getting user:', error);
-    return NextResponse.json(
-      { success: false, message: 'Internal server error' },
-      { status: 500 }
-    );
+    console.error('Proxy error:', error);
+    return NextResponse.json({ success: false, message: 'Failed to connect to API' }, { status: 502 });
   }
 }
 
 export async function POST(request: NextRequest) {
+  const workerUrl = getWorkerUrl();
+  const targetUrl = workerUrl ? `${workerUrl}/api/user` : '/api/user';
+
+  const authHeader = request.headers.get('authorization');
+  if (!authHeader) {
+    return NextResponse.json({ success: false, message: 'Unauthorized' }, { status: 401 });
+  }
+
   try {
-    const authHeader = request.headers.get('authorization');
-    const token = authHeader?.replace('Bearer ', '');
-
-    if (!token) {
-      return NextResponse.json(
-        { success: false, message: 'Unauthorized' },
-        { status: 401 }
-      );
-    }
-
-    const userId = verifyToken(token);
-    if (!userId) {
-      return NextResponse.json(
-        { success: false, message: 'Invalid token' },
-        { status: 401 }
-      );
-    }
-
-    const { credits } = await request.json();
-    
-    if (!credits || credits <= 0) {
-      return NextResponse.json(
-        { success: false, message: 'Invalid credits amount' },
-        { status: 400 }
-      );
-    }
-
-    const success = addPaidCredits(userId, credits);
-    if (!success) {
-      return NextResponse.json(
-        { success: false, message: 'Failed to add credits' },
-        { status: 500 }
-      );
-    }
-
-    const user = getUserById(userId);
-    return NextResponse.json({
-      success: true,
-      user: {
-        id: user!.id,
-        email: user!.email,
-        freeQuota: user!.free_quota,
-        paidCredits: user!.paid_credits,
-        createdAt: user!.created_at,
-      },
+    const body = await request.json();
+    const response = await fetch(targetUrl, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', Authorization: authHeader },
+      body: JSON.stringify(body),
     });
+    const data = await response.json();
+    return NextResponse.json(data, { status: response.status });
   } catch (error) {
-    console.error('Error adding credits:', error);
-    return NextResponse.json(
-      { success: false, message: 'Internal server error' },
-      { status: 500 }
-    );
+    console.error('Proxy error:', error);
+    return NextResponse.json({ success: false, message: 'Failed to connect to API' }, { status: 502 });
   }
 }

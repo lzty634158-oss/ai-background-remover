@@ -1,48 +1,48 @@
-// Simple crypto utilities for password hashing
-// In production, use proper JWT and bcrypt
+/**
+ * Crypto utilities - browser and Edge runtime compatible
+ * Uses Web Crypto API (available in both browser and Cloudflare Workers)
+ */
 
-const SECRET_KEY = process.env.JWT_SECRET || 'your-secret-key-change-in-production';
+const SALT = 'ai-bg-remover-salt';
 
-export function hash(password: string): string {
-  // Simple hash for demo - in production use bcrypt
-  let hash = 0;
-  const salt = 'ai-bg-remover-salt';
-  const combined = password + salt + SECRET_KEY;
-  
-  for (let i = 0; i < 1000; i++) {
-    let char = combined.charCodeAt(i % combined.length);
-    hash = ((hash << 5) - hash) + char;
-    hash = hash & hash;
-  }
-  
-  return hash.toString(16) + ':' + Date.now().toString(16);
+/**
+ * Hash a password using SHA-256 via Web Crypto API
+ */
+export async function hash(password: string): Promise<string> {
+  const encoder = new TextEncoder();
+  const data = encoder.encode(password + SALT);
+  const hashBuffer = await crypto.subtle.digest('SHA-256', data);
+  const hashArray = Array.from(new Uint8Array(hashBuffer));
+  return hashArray.map(b => b.toString(16).padStart(2, '0')).join('');
 }
 
-export function compare(password: string, hashedPassword: string): boolean {
-  const [hash, timestamp] = hashedPassword.split(':');
-  const salt = 'ai-bg-remover-salt';
-  const combined = password + salt + SECRET_KEY;
-  
-  let newHash = 0;
-  for (let i = 0; i < 1000; i++) {
-    let char = combined.charCodeAt(i % combined.length);
-    newHash = ((newHash << 5) - newHash) + char;
-    newHash = newHash & newHash;
-  }
-  
-  return newHash.toString(16) === hash;
+/**
+ * Verify a password against a stored hash
+ * Hash format: "hexhash:timestamp"
+ */
+export async function compare(password: string, hashedPassword: string): Promise<boolean> {
+  const [hashPart] = hashedPassword.split(':');
+  const computed = await hash(password);
+  return computed === hashPart;
 }
 
+/**
+ * Generate a simple auth token (base64url encoded)
+ */
 export function generateToken(userId: string): string {
   const payload = userId + ':' + Date.now();
-  return Buffer.from(payload).toString('base64');
+  return btoa(payload).replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '');
 }
 
+/**
+ * Verify and decode an auth token
+ * Returns userId if valid, null if expired or invalid
+ */
 export function verifyToken(token: string): string | null {
   try {
-    const decoded = Buffer.from(token, 'base64').toString();
+    const padded = token.replace(/-/g, '+').replace(/_/g, '/');
+    const decoded = atob(padded);
     const [userId, timestamp] = decoded.split(':');
-    // Token valid for 7 days
     if (Date.now() - parseInt(timestamp) > 7 * 24 * 60 * 60 * 1000) {
       return null;
     }

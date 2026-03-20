@@ -1,0 +1,26 @@
+name = "ai-background-remover-api"
+main = "worker/index.ts"
+compatibility_date = "2024-01-01"
+
+[site]
+bucket = ".next/static"
+
+# D1 Database
+[[d1_databases]]
+binding = "DB"
+database_name = "ai-background-remover-db"
+database_id = "643d2e7e-79e2-44c1-ad6e-5d41933e12e2"
+
+# R2 Bucket (optional - currently using base64 for images)
+# [[r2_buckets]]
+# binding = "R2_BUCKET"
+# bucket_name = "ai-background-remover-images"
+
+# Environment variables (set in Cloudflare dashboard or .dev.vars)
+[vars]
+REMOVE_BG_API_KEY = ""
+
+# Dev configuration
+[dev]
+port = 8787
+local_protocol = "http"

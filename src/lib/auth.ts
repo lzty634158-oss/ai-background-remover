@@ -1,81 +1,117 @@
-import { db, generateId } from './db';
-import { hash, compare } from './crypto';
+/**
+ * Auth library - client-side HTTP calls to Cloudflare Worker API
+ * Replaces better-sqlite3 based implementation
+ */
 
-export interface CreateUserParams {
-  email: string;
-  password: string;
-}
+const API_BASE = process.env.NEXT_PUBLIC_API_URL || '';
 
+// ─── Types ───────────────────────────────────────────────
 export interface User {
   id: string;
   email: string;
-  password: string;
   free_quota: number;
   paid_credits: number;
   created_at: string;
-  updated_at: string;
+  updated_at?: string;
 }
 
-export function createUser({ email, password }: CreateUserParams): User | null {
-  const hashedPassword = hash(password);
-  const id = generateId();
-  
+export interface AuthResponse {
+  success: boolean;
+  user?: User;
+  token?: string;
+  message?: string;
+}
+
+// ─── Auth API calls (to Cloudflare Worker) ────────────────
+export async function login(email: string, password: string): Promise<AuthResponse> {
+  const res = await fetch(`${API_BASE}/api/auth/login`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ email, password }),
+  });
+  return res.json();
+}
+
+export async function register(email: string, password: string): Promise<AuthResponse> {
+  const res = await fetch(`${API_BASE}/api/auth/register`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ email, password }),
+  });
+  return res.json();
+}
+
+export async function getUser(token: string): Promise<{ success: boolean; user?: User; message?: string }> {
+  const res = await fetch(`${API_BASE}/api/user`, {
+    headers: { Authorization: `Bearer ${token}` },
+  });
+  return res.json();
+}
+
+export async function addCredits(token: string, credits: number): Promise<{ success: boolean; user?: User; message?: string }> {
+  const res = await fetch(`${API_BASE}/api/user`, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      Authorization: `Bearer ${token}`,
+    },
+    body: JSON.stringify({ credits }),
+  });
+  return res.json();
+}
+
+// ─── Token helpers (browser-safe, no Node.js Buffer) ─────
+export function generateToken(userId: string): string {
+  // Simple base64url encoding without Node.js Buffer
+  const payload = userId + ':' + Date.now();
+  return btoa(payload).replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '');
+}
+
+export function verifyToken(token: string): string | null {
   try {
-    const stmt = db.prepare(`
-      INSERT INTO users (id, email, password, free_quota, paid_credits)
-      VALUES (?, ?, ?, 10, 0)
-    `);
-    stmt.run(id, email, hashedPassword);
-    
-    return getUserById(id);
-  } catch (error) {
-    console.error('Error creating user:', error);
+    // Restore base64 padding and standard base64
+    const padded = token.replace(/-/g, '+').replace(/_/g, '/');
+    const decoded = atob(padded);
+    const [userId, timestamp] = decoded.split(':');
+    if (Date.now() - parseInt(timestamp) > 7 * 24 * 60 * 60 * 1000) {
+      return null;
+    }
+    return userId;
+  } catch {
     return null;
   }
 }
 
-export function getUserByEmail(email: string): User | null {
-  const stmt = db.prepare('SELECT * FROM users WHERE email = ?');
-  return stmt.get(email) as User | null;
+// ─── Password helpers (browser-safe Web Crypto API) ──────
+export async function hashPassword(password: string): Promise<string> {
+  const encoder = new TextEncoder();
+  const data = encoder.encode(password + 'ai-bg-remover-salt');
+  const hashBuffer = await crypto.subtle.digest('SHA-256', data);
+  const hashArray = Array.from(new Uint8Array(hashBuffer));
+  return hashArray.map(b => b.toString(16).padStart(2, '0')).join('');
 }
 
-export function getUserById(id: string): User | null {
-  const stmt = db.prepare('SELECT * FROM users WHERE id = ?');
-  return stmt.get(id) as User | null;
+export async function verifyPassword(password: string, hash: string): Promise<boolean> {
+  const passwordHash = await hashPassword(password);
+  return passwordHash === hash;
 }
 
-export function verifyPassword(user: User, password: string): boolean {
-  return compare(password, user.password);
-}
-
-export function updateUserQuota(userId: string, freeQuota: number, paidCredits: number) {
-  const stmt = db.prepare(`
-    UPDATE users 
-    SET free_quota = ?, paid_credits = ?, updated_at = CURRENT_TIMESTAMP
-    WHERE id = ?
-  `);
-  return stmt.run(freeQuota, paidCredits, userId);
-}
-
-export function useQuota(userId: string): { success: boolean; remaining: number; type: 'free' | 'paid' } {
-  const user = getUserById(userId);
-  if (!user) return { success: false, remaining: 0, type: 'free' };
-
-  if (user.free_quota > 0) {
-    updateUserQuota(userId, user.free_quota - 1, user.paid_credits);
-    return { success: true, remaining: user.free_quota - 1, type: 'free' };
-  } else if (user.paid_credits > 0) {
-    updateUserQuota(userId, user.free_quota, user.paid_credits - 1);
-    return { success: true, remaining: user.paid_credits - 1, type: 'paid' };
+// ─── Local storage helpers ──────────────────────────────
+export function saveToken(token: string) {
+  if (typeof window !== 'undefined') {
+    localStorage.setItem('auth_token', token);
   }
-
-  return { success: false, remaining: 0, type: 'free' };
 }
 
-export function addPaidCredits(userId: string, credits: number) {
-  const user = getUserById(userId);
-  if (!user) return false;
-  
-  updateUserQuota(userId, user.free_quota, user.paid_credits + credits);
-  return true;
+export function getToken(): string | null {
+  if (typeof window !== 'undefined') {
+    return localStorage.getItem('auth_token');
+  }
+  return null;
+}
+
+export function removeToken() {
+  if (typeof window !== 'undefined') {
+    localStorage.removeItem('auth_token');
+  }
 }
