@@ -1,8 +1,7 @@
 /** @type { import('next').NextConfig } */
 const nextConfig = {
-  // Cloudflare Pages configuration
-  output: 'standalone',
-  outputFileTracingRoot: __dirname,
+  // Remove standalone output - Cloudflare Pages handles serverless functions natively
+  // output: 'standalone',
 
   // Image domains
   images: {
