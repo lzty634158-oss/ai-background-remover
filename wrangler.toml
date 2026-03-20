@@ -1,7 +1,2 @@
-name = "ai-background-remover"
-# Cloudflare Pages: specify build output directory
+# Cloudflare Pages output config
 pages_build_output_dir = ".vercel/output/static"
-
-# Compatibility flags for Edge Runtime
-compatibility_flags = ["nodejs_compat"]
-compatibility_date = "2024-01-01"
