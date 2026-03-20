@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
+export const runtime = 'edge';
 
 function getWorkerUrl() {
   if (process.env.NODE_ENV === 'production') return '';

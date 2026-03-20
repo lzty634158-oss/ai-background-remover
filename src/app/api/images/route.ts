@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
+export const runtime = 'edge';
 
 // Determine Worker URL based on environment
 function getWorkerUrl() {
