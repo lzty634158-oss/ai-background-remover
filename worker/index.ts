@@ -129,7 +129,7 @@ async function handleImageUpload(request: Request, env: Env): Promise<Response> 
   if (!isLoggedIn && !isGuest) {
     return jsonResponse(
       { success: false, message: 'No credits left. Please login or upgrade.' },
-      { status: 403 }
+      403
     );
   }
 
@@ -140,7 +140,7 @@ async function handleImageUpload(request: Request, env: Env): Promise<Response> 
     if (!file) {
       return jsonResponse(
         { success: false, message: 'Please upload an image file' },
-        { status: 400 }
+        400
       );
     }
 
@@ -148,7 +148,7 @@ async function handleImageUpload(request: Request, env: Env): Promise<Response> 
     if (!['image/png', 'image/jpeg', 'image/webp'].includes(file.type)) {
       return jsonResponse(
         { success: false, message: 'Only PNG, JPG, WebP formats are supported' },
-        { status: 400 }
+        400
       );
     }
 
@@ -156,7 +156,7 @@ async function handleImageUpload(request: Request, env: Env): Promise<Response> 
     if (file.size > 10 * 1024 * 1024) {
       return jsonResponse(
         { success: false, message: 'Image size cannot exceed 10MB' },
-        { status: 400 }
+        400
       );
     }
 
@@ -165,7 +165,7 @@ async function handleImageUpload(request: Request, env: Env): Promise<Response> 
     if (!apiKey) {
       return jsonResponse(
         { success: false, message: 'Server API Key not configured' },
-        { status: 500 }
+        500
       );
     }
 
@@ -190,14 +190,14 @@ async function handleImageUpload(request: Request, env: Env): Promise<Response> 
     if (response.status === 402) {
       return jsonResponse(
         { success: false, message: 'API credits insufficient' },
-        { status: 402 }
+        402
       );
     }
 
     if (response.status === 403) {
       return jsonResponse(
         { success: false, message: 'Invalid API Key' },
-        { status: 403 }
+        403
       );
     }
 
@@ -205,7 +205,7 @@ async function handleImageUpload(request: Request, env: Env): Promise<Response> 
       const errorText = await response.text();
       return jsonResponse(
         { success: false, message: `API error: ${errorText.slice(0, 200)}` },
-        { status: response.status }
+        response.status
       );
     }
 
@@ -279,7 +279,7 @@ async function handleImageUpload(request: Request, env: Env): Promise<Response> 
     console.error('Error processing image:', error);
     return jsonResponse(
       { success: false, message: 'Processing failed' },
-      { status: 500 }
+      500
     );
   }
 }
@@ -292,7 +292,7 @@ async function handleLogin(request: Request, env: Env): Promise<Response> {
     if (!email || !password) {
       return jsonResponse(
         { success: false, message: 'Email and password are required' },
-        { status: 400 }
+        400
       );
     }
 
@@ -304,7 +304,7 @@ async function handleLogin(request: Request, env: Env): Promise<Response> {
     if (!user) {
       return jsonResponse(
         { success: false, message: 'Invalid email or password' },
-        { status: 401 }
+        401
       );
     }
 
@@ -312,7 +312,7 @@ async function handleLogin(request: Request, env: Env): Promise<Response> {
     if (!isValid) {
       return jsonResponse(
         { success: false, message: 'Invalid email or password' },
-        { status: 401 }
+        401
       );
     }
 
@@ -333,7 +333,7 @@ async function handleLogin(request: Request, env: Env): Promise<Response> {
     console.error('Login error:', error);
     return jsonResponse(
       { success: false, message: 'Internal server error' },
-      { status: 500 }
+      500
     );
   }
 }
@@ -346,7 +346,7 @@ async function handleRegister(request: Request, env: Env): Promise<Response> {
     if (!email || !password) {
       return jsonResponse(
         { success: false, message: 'Email and password are required' },
-        { status: 400 }
+        400
       );
     }
 
@@ -359,7 +359,7 @@ async function handleRegister(request: Request, env: Env): Promise<Response> {
     if (existing) {
       return jsonResponse(
         { success: false, message: 'Email already registered' },
-        { status: 409 }
+        409
       );
     }
 
@@ -390,7 +390,7 @@ async function handleRegister(request: Request, env: Env): Promise<Response> {
     console.error('Register error:', error);
     return jsonResponse(
       { success: false, message: 'Registration failed' },
-      { status: 500 }
+      500
     );
   }
 }

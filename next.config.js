@@ -2,6 +2,7 @@
 const nextConfig = {
   // Cloudflare Pages configuration
   output: 'standalone',
+  outputFileTracingRoot: __dirname,
 
   // Image domains
   images: {
