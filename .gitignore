@@ -1,7 +1,9 @@
-# 环境变量
+# Environment variables
 .env
 .env.local
 .env*.local
+.env.production
+.dev.vars
 
 # Node
 node_modules/
@@ -14,10 +16,20 @@ yarn-error.log*
 out/
 build/
 
-# 操作系统
+# Vercel build output
+.vercel/
+
+# Cloudflare
+.wrangler/
+
+# Build artifacts
+.cache/
+*.tsbuildinfo
+next-env.d.ts
+
+# OS
 .DS_Store
 Thumbs.db
 
-# 上传的结果图片
+# Uploaded images
 public/results/
-.wrangler/
