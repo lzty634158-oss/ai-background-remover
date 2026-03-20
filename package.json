@@ -6,8 +6,7 @@
     "dev": "next dev",
     "start": "next start",
     "lint": "next lint",
-    "postbuild": "node_modules/.bin/next-on-pages && python3 scripts/fix-compat.py",
-    "next-build": "next build"
+    "build": "rm -rf .next/cache && next build && node_modules/.bin/next-on-pages"
   },
   "dependencies": {
     "@cloudflare/workers-types": "^4.20260317.1",
