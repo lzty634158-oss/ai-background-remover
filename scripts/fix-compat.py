@@ -5,7 +5,7 @@ import os
 worker_dir = ".vercel/output/static/_worker.js"
 os.makedirs(worker_dir, exist_ok=True)
 
-wrangler_content = 'compatibility_flags = ["nodejs_compat"]\ncompatibility_date = "2024-01-01"\n'
+wrangler_content = 'compatibility_flags = ["nodejs_compat_populate_process_env"]\ncompatibility_date = "2024-01-01"\n'
 with open(os.path.join(worker_dir, "wrangler.toml"), "w") as f:
     f.write(wrangler_content)
 
