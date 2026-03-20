@@ -4,7 +4,7 @@ import { ReactNode, ButtonHTMLAttributes } from 'react';
 
 interface ButtonProps extends ButtonHTMLAttributes<HTMLButtonElement> {
   children: ReactNode;
-  variant?: 'primary' | 'secondary' | 'outline';
+  variant?: 'primary' | 'secondary' | 'outline' | 'ghost';
   size?: 'sm' | 'md' | 'lg';
   loading?: boolean;
 }
@@ -24,6 +24,7 @@ export function Button({
     primary: 'bg-gradient-to-r from-violet-600 to-indigo-600 hover:from-violet-700 hover:to-indigo-700 text-white focus:ring-violet-500',
     secondary: 'bg-gray-700 hover:bg-gray-600 text-white focus:ring-gray-500',
     outline: 'border-2 border-violet-500 text-violet-400 hover:bg-violet-500/10 focus:ring-violet-500',
+    ghost: 'bg-transparent hover:bg-gray-700 text-gray-300 focus:ring-gray-500',
   };
 
   const sizes = {
@@ -89,9 +90,10 @@ export function Card({ children, className = '' }: CardProps) {
 interface BadgeProps {
   children: ReactNode;
   variant?: 'default' | 'success' | 'warning' | 'error';
+  className?: string;
 }
 
-export function Badge({ children, variant = 'default' }: BadgeProps) {
+export function Badge({ children, variant = 'default', className = '' }: BadgeProps) {
   const variants = {
     default: 'bg-gray-700 text-gray-300',
     success: 'bg-green-500/20 text-green-400',
@@ -100,7 +102,7 @@ export function Badge({ children, variant = 'default' }: BadgeProps) {
   };
 
   return (
-    <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${variants[variant]}`}>
+    <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${variants[variant]} ${className}`}>
       {children}
     </span>
   );

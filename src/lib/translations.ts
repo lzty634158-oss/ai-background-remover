@@ -1,5 +1,6 @@
 import { Translation, Lang } from '@/types';
 
+export type { Lang, Translation };
 export const translations: Record<Lang, Translation> = {
   en: {
     title: 'AI Background Remover',

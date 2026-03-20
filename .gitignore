@@ -20,3 +20,4 @@ Thumbs.db
 
 # 上传的结果图片
 public/results/
+.wrangler/
