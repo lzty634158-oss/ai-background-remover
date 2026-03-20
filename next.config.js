@@ -1,23 +1,16 @@
 /** @type { import('next').NextConfig } */
 const nextConfig = {
-  // Remove standalone output - Cloudflare Pages handles serverless functions natively
-  // output: 'standalone',
-
   // Image domains
   images: {
     domains: ['api.remove.bg'],
   },
 
-  // Remove Node.js polyfills since we're no longer using native modules
+  // Unique build ID each time - prevents webpack cache bloat on Cloudflare Pages
+  generateBuildId: () => `build-${Date.now()}`,
+
+  // Disable webpack persistent cache to avoid large .pack files in .next/cache/
   webpack: (config, { isServer }) => {
-    if (!isServer) {
-      config.resolve.fallback = {
-        ...config.resolve.fallback,
-        fs: false,
-        path: false,
-        crypto: false,
-      };
-    }
+    config.cache = false;
     return config;
   },
 
