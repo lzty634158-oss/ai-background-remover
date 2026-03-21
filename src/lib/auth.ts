@@ -10,10 +10,10 @@ const WORKER_URL = 'https://ai-background-remover-api.lzty634158.workers.dev';
 export interface User {
   id: string;
   email: string;
-  free_quota: number;
-  paid_credits: number;
-  created_at: string;
-  updated_at?: string;
+  freeQuota: number;
+  paidCredits: number;
+  totalUsed?: number;
+  createdAt: string;
 }
 
 export interface AuthResponse {
@@ -21,6 +21,22 @@ export interface AuthResponse {
   user?: User;
   token?: string;
   message?: string;
+}
+
+export interface HistoryRecord {
+  id: string;
+  original_name: string;
+  result_key: string;
+  credits_used: number;
+  created_at: string;
+}
+
+export interface HistoryResponse {
+  success: boolean;
+  records: HistoryRecord[];
+  total: number;
+  limit: number;
+  offset: number;
 }
 
 // ─── Auth API calls (to Cloudflare Worker) ────────────────
@@ -44,6 +60,13 @@ export async function register(email: string, password: string): Promise<AuthRes
 
 export async function getUser(token: string): Promise<{ success: boolean; user?: User; message?: string }> {
   const res = await fetch(`${WORKER_URL}/api/user`, {
+    headers: { Authorization: `Bearer ${token}` },
+  });
+  return res.json();
+}
+
+export async function getHistory(token: string, limit = 20, offset = 0): Promise<HistoryResponse> {
+  const res = await fetch(`${WORKER_URL}/api/history?limit=${limit}&offset=${offset}`, {
     headers: { Authorization: `Bearer ${token}` },
   });
   return res.json();
@@ -100,19 +123,20 @@ export async function verifyPassword(password: string, hash: string): Promise<bo
 // ─── Local storage helpers ──────────────────────────────
 export function saveToken(token: string) {
   if (typeof window !== 'undefined') {
-    localStorage.setItem('auth_token', token);
+    localStorage.setItem('token', token);
   }
 }
 
 export function getToken(): string | null {
   if (typeof window !== 'undefined') {
-    return localStorage.getItem('auth_token');
+    return localStorage.getItem('token');
   }
   return null;
 }
 
 export function removeToken() {
   if (typeof window !== 'undefined') {
-    localStorage.removeItem('auth_token');
+    localStorage.removeItem('token');
+    localStorage.removeItem('user');
   }
 }
