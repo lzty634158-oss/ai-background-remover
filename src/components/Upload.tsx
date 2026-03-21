@@ -126,6 +126,11 @@ export default function Upload({ t, onUpload, isProcessing }: UploadProps) {
           </span>
         </div>
 
+        {/* Image type hints */}
+        <p className="text-xs text-gray-500 mb-4 text-center">
+          支持人像 · 产品 · 动物 · 标志 · 汽车 · 建筑等各类图片背景去除
+        </p>
+
         {/* Button */}
         <Button size="lg" loading={isProcessing}>
           {isProcessing ? t.processing : t.uploadButton}
