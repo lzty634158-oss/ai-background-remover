@@ -171,7 +171,7 @@ async function handleImageUpload(request: Request, env: Env): Promise<Response> 
 
     // Read file content
     const arrayBuffer = await file.arrayBuffer();
-    const buffer = Buffer.from(arrayBuffer);
+    const buffer = new Uint8Array(arrayBuffer);
 
     // Call Remove.bg API
     const formDataForApi = new FormData();
@@ -277,8 +277,9 @@ async function handleImageUpload(request: Request, env: Env): Promise<Response> 
     });
   } catch (error) {
     console.error('Error processing image:', error);
+    const message = error instanceof Error ? error.message : String(error);
     return jsonResponse(
-      { success: false, message: 'Processing failed' },
+      { success: false, message: 'Processing failed: ' + message },
       500
     );
   }
