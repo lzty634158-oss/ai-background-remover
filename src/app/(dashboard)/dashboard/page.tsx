@@ -4,7 +4,7 @@ import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { Card, Button } from '@/components/ui';
-import LanguageSwitch from '@/components/LanguageSwitch';
+import AppHeader from '@/components/AppHeader';
 import { getUser, getToken, type User } from '@/lib/auth';
 import { translations, type Lang, type Translation } from '@/lib/translations';
 
@@ -46,6 +46,12 @@ export default function DashboardPage() {
     });
   }, [router]);
 
+  const handleLogout = () => {
+    localStorage.removeItem('token');
+    localStorage.removeItem('user');
+    router.push('/');
+  };
+
   const packages = [
     { name: 'Basic', price: 5, credits: 10, unit: '$0.50/image', popular: false },
     { name: 'Standard', price: 25, credits: 60, unit: '$0.42/image', popular: true },
@@ -64,31 +70,13 @@ export default function DashboardPage() {
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-gray-900 via-gray-900 to-gray-800">
-      <LanguageSwitch onChange={handleLangChange} />
-
-      {/* Header */}
-      <header className="bg-gray-800/50 backdrop-blur-md border-b border-gray-700">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4">
-          <div className="flex items-center justify-between">
-            <Link href="/" className="flex items-center gap-2">
-              <div className="w-8 h-8 bg-gradient-to-br from-violet-500 to-indigo-600 rounded-lg flex items-center justify-center">
-                <svg className="w-5 h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
-                </svg>
-              </div>
-              <span className="text-white font-bold">AI BG Remover</span>
-            </Link>
-            <div className="flex items-center gap-3">
-              <Link href="/history">
-                <Button variant="ghost" size="sm">{t.history}</Button>
-              </Link>
-              <Link href="/">
-                <Button variant="ghost" size="sm">{t.title}</Button>
-              </Link>
-            </div>
-          </div>
-        </div>
-      </header>
+      <AppHeader
+        lang={lang}
+        onLangChange={handleLangChange}
+        t={t}
+        userEmail={user?.email}
+        onLogout={handleLogout}
+      />
 
       <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         {/* User Info Card */}
@@ -167,7 +155,7 @@ export default function DashboardPage() {
                 <p className="text-3xl font-bold text-white mb-1">${pkg.price}</p>
                 <p className="text-gray-400 text-sm mb-1">{pkg.credits} credits</p>
                 <p className="text-gray-500 text-xs mb-4">{pkg.unit}</p>
-                <Button variant={pkg.popular ? 'primary' : 'outline'} className="w-full" disabled>
+                <Button variant="primary" className="w-full" disabled>
                   Coming Soon
                 </Button>
               </Card>
