@@ -34,8 +34,17 @@ export default function AppHeader({ lang, onLangChange, t, userEmail, onLogout }
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const currentLang = languages.find(l => l.code === lang) || languages[0];
 
+  // Close dropdowns when clicking outside
+  useEffect(() => {
+    const handler = () => { setIsLangOpen(false); setIsMenuOpen(false); };
+    if (isLangOpen || isMenuOpen) {
+      document.addEventListener('click', handler);
+      return () => document.removeEventListener('click', handler);
+    }
+  }, [isLangOpen, isMenuOpen]);
+
   return (
-    <header className="bg-gray-800/50 backdrop-blur-md border-b border-gray-700">
+    <header className="relative bg-gray-800/50 backdrop-blur-md border-b border-gray-700" style={{ zIndex: 100 }}>
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="flex items-center justify-between h-16">
           {/* Logo */}
@@ -62,7 +71,7 @@ export default function AppHeader({ lang, onLangChange, t, userEmail, onLogout }
                 </svg>
               </button>
               {isLangOpen && (
-                <div className="absolute right-0 mt-1 w-32 bg-gray-800 border border-gray-700 rounded-lg shadow-xl overflow-hidden z-50">
+                <div className="absolute right-0 mt-1 w-32 bg-gray-800 border border-gray-700 rounded-lg shadow-xl overflow-hidden z-[200]">
                   {languages.map((l) => (
                     <button
                       key={l.code}
@@ -107,7 +116,7 @@ export default function AppHeader({ lang, onLangChange, t, userEmail, onLogout }
                   </svg>
                 </button>
                 {isMenuOpen && (
-                  <div className="absolute right-0 mt-1 w-36 bg-gray-800 border border-gray-700 rounded-lg shadow-xl overflow-hidden z-50">
+                  <div className="absolute right-0 mt-1 w-36 bg-gray-800 border border-gray-700 rounded-lg shadow-xl overflow-hidden z-[200]">
                     <Link href="/dashboard" onClick={() => setIsMenuOpen(false)} className="flex items-center gap-2 px-3 py-2 text-gray-300 hover:bg-gray-700 transition-colors text-sm">
                       {t.dashboard}
                     </Link>
