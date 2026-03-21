@@ -58,6 +58,7 @@ export interface Translation {
   download: string;
   tryAgain: string;
   examplesTitle: string;
+  supportedTypes: string;
   errorApi: string;
   errorFile: string;
   errorQuota: string;
