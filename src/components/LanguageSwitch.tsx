@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { Lang, translations, Translation } from '@/lib/translations';
 import { Button } from '@/components/ui';
 
@@ -33,7 +33,7 @@ export default function LanguageSwitch({ onChange }: LanguageSwitchProps) {
   };
 
   return (
-    <div className="fixed top-20 right-4 z-40">
+    <div className="fixed top-16 right-4 z-[200]">
       <div className="relative">
         <button
           onClick={() => setIsOpen(!isOpen)}
@@ -47,7 +47,7 @@ export default function LanguageSwitch({ onChange }: LanguageSwitchProps) {
         </button>
 
         {isOpen && (
-          <div className="absolute right-0 mt-2 w-40 bg-gray-800 border border-gray-700 rounded-lg shadow-xl overflow-hidden">
+          <div className="absolute right-0 mt-2 w-40 bg-gray-800 border border-gray-700 rounded-lg shadow-xl overflow-hidden z-[200]">
             {languages.map((lang) => (
               <button
                 key={lang.code}
