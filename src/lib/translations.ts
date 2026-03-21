@@ -32,7 +32,6 @@ export const translations: Record<Lang, Translation> = {
     processingHistory: 'Processing History',
     noImagesYet: 'No images processed yet',
   },
-};
   zh: {
     title: 'AI 背景去除器',
     subtitle: '自动去除图片背景，只需几秒钟',
@@ -63,7 +62,6 @@ export const translations: Record<Lang, Translation> = {
     processingHistory: '处理历史',
     noImagesYet: '暂无处理记录',
   },
-};
   ja: {
     title: 'AI 背景削除',
     subtitle: '数秒で画像から背景を自動削除',
@@ -94,7 +92,6 @@ export const translations: Record<Lang, Translation> = {
     processingHistory: '処理履歴',
     noImagesYet: '処理された画像はありません',
   },
-};
   ko: {
     title: 'AI 배경 제거기',
     subtitle: '몇 초 만에 이미지 배경을 자동으로 제거',
@@ -125,7 +122,6 @@ export const translations: Record<Lang, Translation> = {
     processingHistory: '처리 기록',
     noImagesYet: '처리된 이미지가 없습니다',
   },
-};
   es: {
     title: 'AI Eliminar Fondo',
     subtitle: 'Elimina el fondo de la imagen automáticamente en segundos',
@@ -156,7 +152,6 @@ export const translations: Record<Lang, Translation> = {
     processingHistory: 'Historial de Procesamiento',
     noImagesYet: 'Aún no hay imágenes procesadas',
   },
-};
   fr: {
     title: 'AI Supprimeur de Fond',
     subtitle: 'Supprimez le fond de vos images automatiquement en quelques secondes',
@@ -187,7 +182,6 @@ export const translations: Record<Lang, Translation> = {
     processingHistory: 'Historique de Traitement',
     noImagesYet: 'Aucune image traitée pour le moment',
   },
-};
   de: {
     title: 'AI Hintergrundentferner',
     subtitle: 'Entfernen Sie Bildhintergründe automatisch in Sekunden',
