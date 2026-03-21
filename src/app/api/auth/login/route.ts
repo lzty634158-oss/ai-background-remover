@@ -2,13 +2,17 @@ import { NextRequest, NextResponse } from 'next/server';
 export const runtime = 'edge';
 
 function getWorkerUrl() {
-  if (process.env.NODE_ENV === 'production') return '';
+  // In production on Cloudflare Pages, proxy to the standalone Worker
+  if (process.env.NODE_ENV === 'production') {
+    return 'https://ai-background-remover-api.lzty634158.workers.dev';
+  }
+  // Local development with Wrangler
   return process.env.WORKER_DEV_URL || 'http://localhost:8787';
 }
 
 export async function POST(request: NextRequest) {
   const workerUrl = getWorkerUrl();
-  const targetUrl = workerUrl ? `${workerUrl}/api/auth/login` : '/api/auth/login';
+  const targetUrl = `${workerUrl}/api/auth/login`;
 
   try {
     const body = await request.json();
