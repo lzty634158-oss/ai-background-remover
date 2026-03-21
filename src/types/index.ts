@@ -71,4 +71,10 @@ export interface Translation {
   remainingCredits: string;
   pricing: string;
   packages: string;
+  availableCredits?: string;
+  imagesUsed?: string;
+  memberSince?: string;
+  purchaseCredits?: string;
+  processingHistory?: string;
+  noImagesYet?: string;
 }
