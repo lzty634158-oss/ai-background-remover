@@ -82,10 +82,8 @@ export default function Home() {
         throw new Error(data.message || t.errorApi);
       }
 
-      const resultResponse = await fetch(data.imageUrl);
-      const blob = await resultResponse.blob();
-      const resultUrl = URL.createObjectURL(blob);
-      setResultImage(resultUrl);
+      // Worker returns imageData as base64 data URL (data:image/png;base64,...)
+      setResultImage(data.imageData);
       
       if (data.remainingQuota !== undefined) {
         setRemainingQuota(data.remainingQuota);
