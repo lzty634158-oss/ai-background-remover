@@ -25,7 +25,14 @@ export const translations: Record<Lang, Translation> = {
     remainingCredits: 'Paid Credits',
     pricing: 'Pricing',
     packages: 'Packages',
+    availableCredits: 'Available Credits',
+    imagesUsed: 'Images Used',
+    memberSince: 'Member since',
+    purchaseCredits: 'Purchase Credits',
+    processingHistory: 'Processing History',
+    noImagesYet: 'No images processed yet',
   },
+};
   zh: {
     title: 'AI 背景去除器',
     subtitle: '自动去除图片背景，只需几秒钟',
@@ -49,7 +56,14 @@ export const translations: Record<Lang, Translation> = {
     remainingCredits: '付费积分',
     pricing: '价格',
     packages: '套餐',
+    availableCredits: '可用积分',
+    imagesUsed: '已用图片',
+    memberSince: '注册时间',
+    purchaseCredits: '购买积分',
+    processingHistory: '处理历史',
+    noImagesYet: '暂无处理记录',
   },
+};
   ja: {
     title: 'AI 背景削除',
     subtitle: '数秒で画像から背景を自動削除',
@@ -73,7 +87,14 @@ export const translations: Record<Lang, Translation> = {
     remainingCredits: '有料クレジット',
     pricing: '料金',
     packages: 'プラン',
+    availableCredits: '利用可能なクレジット',
+    imagesUsed: '使用した画像',
+    memberSince: '登録日',
+    purchaseCredits: 'クレジット購入',
+    processingHistory: '処理履歴',
+    noImagesYet: '処理された画像はありません',
   },
+};
   ko: {
     title: 'AI 배경 제거기',
     subtitle: '몇 초 만에 이미지 배경을 자동으로 제거',
@@ -97,7 +118,14 @@ export const translations: Record<Lang, Translation> = {
     remainingCredits: '유료 크레딧',
     pricing: '가격',
     packages: '패키지',
+    availableCredits: '사용 가능한 크레딧',
+    imagesUsed: '사용한 이미지',
+    memberSince: '가입일',
+    purchaseCredits: '크레딧 구매',
+    processingHistory: '처리 기록',
+    noImagesYet: '처리된 이미지가 없습니다',
   },
+};
   es: {
     title: 'AI Eliminar Fondo',
     subtitle: 'Elimina el fondo de la imagen automáticamente en segundos',
@@ -121,7 +149,14 @@ export const translations: Record<Lang, Translation> = {
     remainingCredits: 'Créditos Pagados',
     pricing: 'Precios',
     packages: 'Paquetes',
+    availableCredits: 'Créditos Disponibles',
+    imagesUsed: 'Imágenes Usadas',
+    memberSince: 'Miembro desde',
+    purchaseCredits: 'Comprar Créditos',
+    processingHistory: 'Historial de Procesamiento',
+    noImagesYet: 'Aún no hay imágenes procesadas',
   },
+};
   fr: {
     title: 'AI Supprimeur de Fond',
     subtitle: 'Supprimez le fond de vos images automatiquement en quelques secondes',
@@ -145,7 +180,14 @@ export const translations: Record<Lang, Translation> = {
     remainingCredits: 'Crédits Payants',
     pricing: 'Tarifs',
     packages: 'Forfaits',
+    availableCredits: 'Crédits Disponibles',
+    imagesUsed: 'Images Utilisées',
+    memberSince: 'Membre depuis',
+    purchaseCredits: 'Acheter des Crédits',
+    processingHistory: 'Historique de Traitement',
+    noImagesYet: 'Aucune image traitée pour le moment',
   },
+};
   de: {
     title: 'AI Hintergrundentferner',
     subtitle: 'Entfernen Sie Bildhintergründe automatisch in Sekunden',
@@ -169,5 +211,11 @@ export const translations: Record<Lang, Translation> = {
     remainingCredits: 'Bezahlte Credits',
     pricing: 'Preise',
     packages: 'Pakete',
+    availableCredits: 'Verfügbare Credits',
+    imagesUsed: 'Bilder Verwendet',
+    memberSince: 'Mitglied seit',
+    purchaseCredits: 'Credits Kaufen',
+    processingHistory: 'Verarbeitungsverlauf',
+    noImagesYet: 'Noch keine Bilder verarbeitet',
   },
 };
