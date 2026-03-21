@@ -3,7 +3,8 @@
  * Replaces better-sqlite3 based implementation
  */
 
-const API_BASE = process.env.NEXT_PUBLIC_API_URL || '';
+// Always call the standalone Worker directly — it has D1 bound
+const WORKER_URL = 'https://ai-background-remover-api.lzty634158.workers.dev';
 
 // ─── Types ───────────────────────────────────────────────
 export interface User {
@@ -24,7 +25,7 @@ export interface AuthResponse {
 
 // ─── Auth API calls (to Cloudflare Worker) ────────────────
 export async function login(email: string, password: string): Promise<AuthResponse> {
-  const res = await fetch(`${API_BASE}/api/auth/login`, {
+  const res = await fetch(`${WORKER_URL}/api/auth/login`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({ email, password }),
@@ -33,7 +34,7 @@ export async function login(email: string, password: string): Promise<AuthRespon
 }
 
 export async function register(email: string, password: string): Promise<AuthResponse> {
-  const res = await fetch(`${API_BASE}/api/auth/register`, {
+  const res = await fetch(`${WORKER_URL}/api/auth/register`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({ email, password }),
@@ -42,14 +43,14 @@ export async function register(email: string, password: string): Promise<AuthRes
 }
 
 export async function getUser(token: string): Promise<{ success: boolean; user?: User; message?: string }> {
-  const res = await fetch(`${API_BASE}/api/user`, {
+  const res = await fetch(`${WORKER_URL}/api/user`, {
     headers: { Authorization: `Bearer ${token}` },
   });
   return res.json();
 }
 
 export async function addCredits(token: string, credits: number): Promise<{ success: boolean; user?: User; message?: string }> {
-  const res = await fetch(`${API_BASE}/api/user`, {
+  const res = await fetch(`${WORKER_URL}/api/user`, {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',
