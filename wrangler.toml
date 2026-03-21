@@ -1,2 +1,3 @@
 name = "ai-background-remover"
 pages_build_output_dir = ".vercel/output/static"
+compatibility_flags = ["nodejs_compat", "nodejs_compat_populate_process_env"]
