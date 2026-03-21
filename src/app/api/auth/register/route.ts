@@ -2,13 +2,15 @@ import { NextRequest, NextResponse } from 'next/server';
 export const runtime = 'edge';
 
 function getWorkerUrl() {
-  if (process.env.NODE_ENV === 'production') return '';
+  if (process.env.NODE_ENV === 'production') {
+    return 'https://ai-background-remover-api.lzty634158.workers.dev';
+  }
   return process.env.WORKER_DEV_URL || 'http://localhost:8787';
 }
 
 export async function POST(request: NextRequest) {
   const workerUrl = getWorkerUrl();
-  const targetUrl = workerUrl ? `${workerUrl}/api/auth/register` : '/api/auth/register';
+  const targetUrl = `${workerUrl}/api/auth/register`;
 
   try {
     const body = await request.json();
