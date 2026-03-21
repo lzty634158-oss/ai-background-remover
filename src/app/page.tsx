@@ -7,6 +7,8 @@ import Result from "@/components/Result";
 import { translations } from "@/components/LanguageSwitch";
 import { Lang, Translation } from "@/types";
 
+const WORKER_URL = 'https://ai-background-remover-api.lzty634158.workers.dev';
+
 export default function Home() {
   const [lang, setLang] = useState<Lang>("zh");
   const [t, setT] = useState<Translation>(translations.zh);
@@ -32,7 +34,7 @@ export default function Home() {
   const fetchQuota = async () => {
     const token = localStorage.getItem('token');
     try {
-      const response = await fetch("/api/images", {
+      const response = await fetch(`${WORKER_URL}/api/images`, {
         headers: token ? { 'Authorization': `Bearer ${token}` } : {},
       });
       const data = await response.json();
@@ -68,7 +70,7 @@ export default function Home() {
     formData.append("file", file);
 
     try {
-      const response = await fetch("/api/images", {
+      const response = await fetch(`${WORKER_URL}/api/images`, {
         method: "POST",
         headers: token ? { 'Authorization': `Bearer ${token}` } : {},
         body: formData,
