@@ -1,0 +1,136 @@
+'use client';
+
+import { useState, useEffect } from 'react';
+import Link from 'next/link';
+import { useRouter } from 'next/navigation';
+import { Card, Button } from '@/components/ui';
+import { getHistory, getToken, type HistoryRecord } from '@/lib/auth';
+
+export default function HistoryPage() {
+  const router = useRouter();
+  const [records, setRecords] = useState<HistoryRecord[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [total, setTotal] = useState(0);
+  const [offset, setOffset] = useState(0);
+  const limit = 12;
+
+  useEffect(() => {
+    const token = getToken();
+    if (!token) {
+      router.push('/login');
+      return;
+    }
+
+    getHistory(token, limit, offset).then((res) => {
+      if (res.success) {
+        setRecords(res.records);
+        setTotal(res.total);
+      }
+      setLoading(false);
+    });
+  }, [offset, router]);
+
+  const formatDate = (dateStr: string) => {
+    const d = new Date(dateStr);
+    return d.toLocaleDateString() + ' ' + d.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+  };
+
+  return (
+    <div className="min-h-screen bg-gradient-to-br from-gray-900 via-gray-900 to-gray-800">
+      {/* Header */}
+      <header className="bg-gray-800/50 backdrop-blur-md border-b border-gray-700">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4">
+          <div className="flex items-center justify-between">
+            <Link href="/" className="flex items-center gap-2">
+              <div className="w-8 h-8 bg-gradient-to-br from-violet-500 to-indigo-600 rounded-lg flex items-center justify-center">
+                <svg className="w-5 h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                </svg>
+              </div>
+              <span className="text-white font-bold">AI BG Remover</span>
+            </Link>
+            <div className="flex items-center gap-3">
+              <Link href="/dashboard">
+                <Button variant="ghost" size="sm">Dashboard</Button>
+              </Link>
+              <Link href="/">
+                <Button variant="ghost" size="sm">Home</Button>
+              </Link>
+            </div>
+          </div>
+        </div>
+      </header>
+
+      <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+        <div className="flex items-center justify-between mb-6">
+          <h1 className="text-2xl font-bold text-white">Processing History</h1>
+          <p className="text-gray-400 text-sm">Total: {total} images</p>
+        </div>
+
+        {loading ? (
+          <div className="flex items-center justify-center py-20">
+            <div className="w-8 h-8 border-4 border-violet-500 border-t-transparent rounded-full animate-spin" />
+          </div>
+        ) : records.length === 0 ? (
+          <Card className="text-center py-16 bg-gray-800/60 border-gray-700">
+            <svg className="w-16 h-16 mx-auto text-gray-600 mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
+            </svg>
+            <p className="text-gray-400 mb-4">No images processed yet</p>
+            <Link href="/">
+              <Button>Remove your first background</Button>
+            </Link>
+          </Card>
+        ) : (
+          <>
+            <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-4">
+              {records.map((record) => (
+                <Card key={record.id} className="bg-gray-800/60 border-gray-700 overflow-hidden group">
+                  {/* Placeholder preview - shows filename instead */}
+                  <div className="aspect-square bg-gradient-to-br from-gray-700 to-gray-800 flex flex-col items-center justify-center p-3">
+                    <svg className="w-10 h-10 text-gray-500 mb-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                    </svg>
+                    <p className="text-gray-400 text-xs text-center truncate w-full px-1">
+                      {record.original_name}
+                    </p>
+                  </div>
+                  <div className="p-3">
+                    <p className="text-gray-500 text-xs truncate">{record.original_name}</p>
+                    <p className="text-gray-600 text-xs mt-1">{formatDate(record.created_at)}</p>
+                    <p className="text-indigo-400 text-xs mt-1">-{record.credits_used} credit</p>
+                  </div>
+                </Card>
+              ))}
+            </div>
+
+            {/* Pagination */}
+            {total > limit && (
+              <div className="flex items-center justify-center gap-4 mt-8">
+                <Button
+                  variant="outline"
+                  size="sm"
+                  disabled={offset === 0}
+                  onClick={() => setOffset(Math.max(0, offset - limit))}
+                >
+                  ← Previous
+                </Button>
+                <span className="text-gray-400 text-sm">
+                  {offset + 1}–{Math.min(offset + limit, total)} of {total}
+                </span>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  disabled={offset + limit >= total}
+                  onClick={() => setOffset(offset + limit)}
+                >
+                  Next →
+                </Button>
+              </div>
+            )}
+          </>
+        )}
+      </main>
+    </div>
+  );
+}
