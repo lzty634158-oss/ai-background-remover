@@ -127,8 +127,8 @@ export default function Upload({ t, onUpload, isProcessing }: UploadProps) {
         </div>
 
         {/* Image type hints */}
-        <p className="text-xs text-gray-500 mb-4 text-center">
-          支持人像 · 产品 · 动物 · 标志 · 汽车 · 建筑等各类图片背景去除
+        <p className="text-sm text-indigo-300 font-medium mb-4 text-center leading-relaxed">
+          {t.supportedTypes}
         </p>
 
         {/* Button */}
