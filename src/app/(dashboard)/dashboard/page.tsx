@@ -149,7 +149,7 @@ export default function DashboardPage() {
                 <p className="text-3xl font-bold text-white mb-1">${pkg.price}</p>
                 <p className="text-gray-400 text-sm mb-1">{pkg.credits} credits</p>
                 <p className="text-gray-500 text-xs mb-4">{pkg.unit}</p>
-                <Button variant={pkg.popular ? 'default' : 'outline'} className="w-full" disabled>
+                <Button variant={pkg.popular ? 'primary' : 'outline'} className="w-full" disabled>
                   Coming Soon
                 </Button>
               </Card>
