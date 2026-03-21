@@ -405,6 +405,91 @@ async function handleGetImage(request: Request, env: Env): Promise<Response> {
   }, 404);
 }
 
+// GET: Get user profile + real-time quota
+async function handleGetUser(request: Request, env: Env): Promise<Response> {
+  const authHeader = request.headers.get('Authorization');
+  const token = authHeader?.replace('Bearer ', '');
+
+  if (!token) {
+    return jsonResponse({ success: false, message: 'Unauthorized' }, 401);
+  }
+
+  const userId = verifyToken(token);
+  if (!userId) {
+    return jsonResponse({ success: false, message: 'Invalid or expired token' }, 401);
+  }
+
+  const user = await env.DB
+    .prepare('SELECT * FROM users WHERE id = ?')
+    .bind(userId)
+    .first();
+
+  if (!user) {
+    return jsonResponse({ success: false, message: 'User not found' }, 404);
+  }
+
+  // Get usage count
+  const usage = await env.DB
+    .prepare('SELECT COUNT(*) as count FROM image_records WHERE user_id = ?')
+    .bind(userId)
+    .first();
+
+  return jsonResponse({
+    success: true,
+    user: {
+      id: user.id,
+      email: user.email,
+      freeQuota: user.free_quota,
+      paidCredits: user.paid_credits,
+      totalUsed: usage?.count || 0,
+      createdAt: user.created_at,
+    },
+  });
+}
+
+// GET: Get processing history
+async function handleGetHistory(request: Request, env: Env): Promise<Response> {
+  const authHeader = request.headers.get('Authorization');
+  const token = authHeader?.replace('Bearer ', '');
+
+  if (!token) {
+    return jsonResponse({ success: false, message: 'Unauthorized' }, 401);
+  }
+
+  const userId = verifyToken(token);
+  if (!userId) {
+    return jsonResponse({ success: false, message: 'Invalid or expired token' }, 401);
+  }
+
+  const url = new URL(request.url);
+  const limit = Math.min(parseInt(url.searchParams.get('limit') || '20'), 50);
+  const offset = parseInt(url.searchParams.get('offset') || '0');
+
+  const records = await env.DB
+    .prepare(`
+      SELECT id, original_name, result_key, credits_used, created_at
+      FROM image_records
+      WHERE user_id = ?
+      ORDER BY created_at DESC
+      LIMIT ? OFFSET ?
+    `)
+    .bind(userId, limit, offset)
+    .all();
+
+  const total = await env.DB
+    .prepare('SELECT COUNT(*) as count FROM image_records WHERE user_id = ?')
+    .bind(userId)
+    .first();
+
+  return jsonResponse({
+    success: true,
+    records: records.results,
+    total: total?.count || 0,
+    limit,
+    offset,
+  });
+}
+
 export default {
   async fetch(request: Request, env: Env, ctx: ExecutionContext): Promise<Response> {
     const url = new URL(request.url);
@@ -422,6 +507,18 @@ export default {
           ? await handleQuotaCheck(request, env)
           : request.method === 'POST'
           ? await handleImageUpload(request, env)
+          : new Response('Method not allowed', { status: 405 });
+      }
+      
+      if (path === '/api/user') {
+        return request.method === 'GET'
+          ? await handleGetUser(request, env)
+          : new Response('Method not allowed', { status: 405 });
+      }
+
+      if (path === '/api/history') {
+        return request.method === 'GET'
+          ? await handleGetHistory(request, env)
           : new Response('Method not allowed', { status: 405 });
       }
       
