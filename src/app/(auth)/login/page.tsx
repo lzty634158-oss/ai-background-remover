@@ -1,9 +1,11 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { Button, Input, Card } from '@/components/ui';
+import AppHeader from '@/components/AppHeader';
+import { translations, type Lang, type Translation } from '@/lib/translations';
 
 export default function LoginPage() {
   const router = useRouter();
@@ -11,6 +13,20 @@ export default function LoginPage() {
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
+  const [lang, setLang] = useState<Lang>('zh');
+  const [t, setT] = useState<Translation>(translations.zh);
+
+  useEffect(() => {
+    const savedLang = (localStorage.getItem('lang') as Lang) || 'zh';
+    setLang(savedLang);
+    setT(translations[savedLang]);
+  }, []);
+
+  const handleLangChange = (newLang: Lang) => {
+    setLang(newLang);
+    setT(translations[newLang]);
+    localStorage.setItem('lang', newLang);
+  };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -30,11 +46,8 @@ export default function LoginPage() {
         throw new Error(data.message || 'Login failed');
       }
 
-      // Save auth data
       localStorage.setItem('token', data.token);
       localStorage.setItem('user', JSON.stringify(data.user));
-
-      // Redirect to home
       router.push('/');
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Login failed');
@@ -44,61 +57,53 @@ export default function LoginPage() {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-gray-900 via-gray-900 to-gray-800 flex items-center justify-center px-4">
-      <div className="w-full max-w-md">
-        {/* Logo */}
-        <div className="text-center mb-8">
-          <Link href="/" className="inline-flex items-center gap-2">
-            <div className="w-10 h-10 bg-gradient-to-br from-violet-500 to-indigo-600 rounded-lg flex items-center justify-center">
-              <svg className="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
-              </svg>
-            </div>
-            <span className="text-white font-bold text-2xl">AI BG Remover</span>
-          </Link>
+    <div className="min-h-screen bg-gradient-to-br from-gray-900 via-gray-900 to-gray-800">
+      <AppHeader lang={lang} onLangChange={handleLangChange} t={t} />
+
+      <main className="flex items-center justify-center px-4 pt-8">
+        <div className="w-full max-w-md">
+          <Card className="bg-gray-800/80 border-gray-700">
+            <h1 className="text-2xl font-bold text-white mb-6 text-center">{t.login}</h1>
+
+            <form onSubmit={handleSubmit} className="space-y-4">
+              <Input
+                type="email"
+                label="Email"
+                placeholder="your@email.com"
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+                required
+              />
+
+              <Input
+                type="password"
+                label="Password"
+                placeholder="••••••••"
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+                required
+              />
+
+              {error && (
+                <div className="p-3 bg-red-500/10 border border-red-500/50 rounded-lg text-red-400 text-sm">
+                  {error}
+                </div>
+              )}
+
+              <Button type="submit" className="w-full" loading={loading}>
+                {t.login}
+              </Button>
+            </form>
+
+            <p className="mt-6 text-center text-gray-400">
+              {t.register}?{' '}
+              <Link href="/register" className="text-violet-400 hover:text-violet-300">
+                → {t.register}
+              </Link>
+            </p>
+          </Card>
         </div>
-
-        <Card>
-          <h1 className="text-2xl font-bold text-white mb-6 text-center">Login</h1>
-
-          <form onSubmit={handleSubmit} className="space-y-4">
-            <Input
-              type="email"
-              label="Email"
-              placeholder="your@email.com"
-              value={email}
-              onChange={(e) => setEmail(e.target.value)}
-              required
-            />
-
-            <Input
-              type="password"
-              label="Password"
-              placeholder="••••••••"
-              value={password}
-              onChange={(e) => setPassword(e.target.value)}
-              required
-            />
-
-            {error && (
-              <div className="p-3 bg-red-500/10 border border-red-500/50 rounded-lg text-red-400 text-sm">
-                {error}
-              </div>
-            )}
-
-            <Button type="submit" className="w-full" loading={loading}>
-              Login
-            </Button>
-          </form>
-
-          <p className="mt-6 text-center text-gray-400">
-            Don't have an account?{' '}
-            <Link href="/register" className="text-violet-400 hover:text-violet-300">
-              Register
-            </Link>
-          </p>
-        </Card>
-      </div>
+      </main>
     </div>
   );
 }
