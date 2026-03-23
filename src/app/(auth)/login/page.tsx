@@ -52,8 +52,7 @@ export default function LoginPage() {
   };
 
   const handleGoogleLogin = () => {
-    // Call Pages domain API route (Next.js edge function), which forwards to Worker
-    window.location.href = `${PAGES_BASE}/api/auth/google?return_to=${encodeURIComponent(window.location.pathname)}`;
+    window.location.href = `/google-login?return_to=${encodeURIComponent(window.location.pathname)}`;
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
