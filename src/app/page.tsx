@@ -155,7 +155,7 @@ export default function Home() {
       </main>
 
       <footer className="py-6 text-center text-gray-500 text-sm">
-        <p>© 2026 AI Background Remover · v1.0.1</p>
+        <p>© 2026 AI Background Remover · v2.0.0</p>
       </footer>
     </div>
   );
