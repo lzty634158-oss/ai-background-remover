@@ -8,4 +8,9 @@ binding = "DB"
 database_name = "ai-background-remover-db"
 database_id = "643d2e7e-79e2-44c1-ad6e-5d41933e12e2"
 
-# REMOVE_BG_API_KEY is set as a secret via `wrangler secret put`
+# Environment variables (non-secrets)
+# GOOGLE_CLIENT_ID - set via `wrangler secret put GOOGLE_CLIENT_ID`
+# GOOGLE_CLIENT_SECRET - set via `wrangler secret put GOOGLE_CLIENT_SECRET`
+
+[vars]
+FRONTEND_URL = "https://ai-background-remover-5h2.pages.dev"
