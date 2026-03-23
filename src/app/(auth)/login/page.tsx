@@ -9,6 +9,8 @@ import { translations, type Lang, type Translation } from '@/lib/translations';
 
 const WORKER_URL = 'https://ai-background-remover-api.lzty634158.workers.dev';
 
+const PAGES_BASE = 'https://ai-background-remover-5h2.pages.dev';
+
 export default function LoginPage() {
   const router = useRouter();
   const [email, setEmail] = useState('');
@@ -50,8 +52,8 @@ export default function LoginPage() {
   };
 
   const handleGoogleLogin = () => {
-    const currentPath = window.location.pathname;
-    window.location.href = `${WORKER_URL}/auth/google?return_to=${encodeURIComponent(currentPath)}`;
+    // Call Pages domain API route (Next.js edge function), which forwards to Worker
+    window.location.href = `${PAGES_BASE}/api/auth/google?return_to=${encodeURIComponent(window.location.pathname)}`;
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
