@@ -32,7 +32,7 @@ export default function AuthCallbackPage() {
         })
         .catch(console.error)
         .finally(() => {
-          router.push(returnTo);
+          window.location.href = returnTo;
         });
     } else {
       router.push('/login?error=no_token');
