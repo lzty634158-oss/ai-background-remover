@@ -4,7 +4,8 @@
 CREATE TABLE IF NOT EXISTS users (
   id TEXT PRIMARY KEY,
   email TEXT UNIQUE NOT NULL,
-  password TEXT NOT NULL,
+  password TEXT,
+  google_id TEXT UNIQUE,
   free_quota INTEGER DEFAULT 10,
   paid_credits INTEGER DEFAULT 0,
   created_at TEXT DEFAULT (datetime('now')),
