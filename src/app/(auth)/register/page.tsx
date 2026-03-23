@@ -18,6 +18,10 @@ export default function RegisterPage() {
   const [t, setT] = useState<Translation>(translations.zh);
 
   useEffect(() => {
+    if (localStorage.getItem('token')) {
+      router.push('/');
+      return;
+    }
     const savedLang = (localStorage.getItem('lang') as Lang) || 'zh';
     setLang(savedLang);
     setT(translations[savedLang]);
