@@ -4,6 +4,9 @@ export interface Env {
   DB: D1Database;
   REMOVE_BG_API_KEY: string;
   JWT_SECRET: string;
+  GOOGLE_CLIENT_ID: string;
+  GOOGLE_CLIENT_SECRET: string;
+  FRONTEND_URL: string;
 }
 
 const corsHeaders = {
@@ -51,6 +54,190 @@ function verifyToken(token: string): string | null {
 
 function generateId(): string {
   return `${Date.now()}-${Math.random().toString(36).slice(2, 11)}`;
+}
+
+// ─── Google OAuth helpers ────────────────────────────────
+function generateState(): string {
+  return crypto.randomUUID();
+}
+
+function getGoogleOAuthURL(state: string): string {
+  const params = new URLSearchParams({
+    client_id: '',
+    redirect_uri: '',
+    response_type: 'code',
+    scope: 'email profile openid',
+    state,
+    access_type: 'offline',
+    prompt: 'consent',
+  });
+  return `https://accounts.google.com/o/oauth2/v2/auth?${params}`;
+}
+
+// ─── Google OAuth endpoints ──────────────────────────────
+async function handleGoogleAuth(request: Request, env: Env): Promise<Response> {
+  const url = new URL(request.url);
+  const frontendUrl = env.FRONTEND_URL || 'https://ai-background-remover-5h2.pages.dev';
+
+  if (!env.GOOGLE_CLIENT_ID || !env.GOOGLE_CLIENT_SECRET) {
+    return jsonResponse({ success: false, message: 'Google OAuth not configured' }, 503);
+  }
+
+  const state = generateState();
+  const returnTo = url.searchParams.get('return_to') || '/';
+
+  // Store state in a temporary KV or just pass it through (state is verified via timing)
+  const stateData = JSON.stringify({ state, returnTo, created: Date.now() });
+  const encodedState = btoa(stateData).replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '');
+
+  const params = new URLSearchParams({
+    client_id: env.GOOGLE_CLIENT_ID,
+    redirect_uri: `${url.origin}/auth/google/callback`,
+    response_type: 'code',
+    scope: 'email profile openid',
+    state: encodedState,
+    access_type: 'offline',
+    prompt: 'consent',
+  });
+
+  return Response.redirect(`https://accounts.google.com/o/oauth2/v2/auth?${params}`, 302);
+}
+
+async function handleGoogleCallback(request: Request, env: Env): Promise<Response> {
+  const url = new URL(request.url);
+  const code = url.searchParams.get('code');
+  const encodedState = url.searchParams.get('state');
+  const frontendUrl = env.FRONTEND_URL || 'https://ai-background-remover-5h2.pages.dev';
+
+  if (!code || !encodedState) {
+    return Response.redirect(`${frontendUrl}/login?error=missing_params`, 302);
+  }
+
+  // Decode and verify state
+  let stateData: { state: string; returnTo: string; created: number };
+  try {
+    const padded = encodedState.replace(/-/g, '+').replace(/_/g, '/');
+    stateData = JSON.parse(atob(padded));
+    // State expires after 10 minutes
+    if (Date.now() - stateData.created > 10 * 60 * 1000) {
+      return Response.redirect(`${frontendUrl}/login?error=state_expired`, 302);
+    }
+  } catch {
+    return Response.redirect(`${frontendUrl}/login?error=invalid_state`, 302);
+  }
+
+  if (!env.GOOGLE_CLIENT_ID || !env.GOOGLE_CLIENT_SECRET) {
+    return Response.redirect(`${frontendUrl}/login?error=oauth_not_configured`, 302);
+  }
+
+  try {
+    // Exchange code for tokens
+    const tokenRes = await fetch('https://oauth2.googleapis.com/token', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        code,
+        client_id: env.GOOGLE_CLIENT_ID,
+        client_secret: env.GOOGLE_CLIENT_SECRET,
+        redirect_uri: `${new URL(request.url).origin}/auth/google/callback`,
+        grant_type: 'authorization_code',
+      }),
+    });
+
+    if (!tokenRes.ok) {
+      const err = await tokenRes.text();
+      console.error('Google token exchange failed:', err);
+      return Response.redirect(`${frontendUrl}/login?error=token_exchange_failed`, 302);
+    }
+
+    const tokens = await tokenRes.json();
+    const accessToken = tokens.access_token as string;
+    const idToken = tokens.id_token as string;
+
+    // Decode id_token to get user info (no need to verify signature for our use case)
+    let googleEmail = '';
+    let googleName = '';
+    let googleId = '';
+
+    try {
+      const payloadBase64 = idToken.split('.')[1];
+      const padded = payloadBase64.replace(/-/g, '+').replace(/_/g, '/');
+      const payload = JSON.parse(atob(padded));
+      googleEmail = payload.email || '';
+      googleName = payload.name || '';
+      googleId = payload.sub || '';
+    } catch {
+      // Fallback: fetch userinfo endpoint
+      const userInfoRes = await fetch('https://www.googleapis.com/oauth2/v2/userinfo', {
+        headers: { Authorization: `Bearer ${accessToken}` },
+      });
+      const userInfo = await userInfoRes.json();
+      googleEmail = userInfo.email || '';
+      googleName = userInfo.name || '';
+      googleId = userInfo.id || '';
+    }
+
+    if (!googleEmail) {
+      return Response.redirect(`${frontendUrl}/login?error=no_email`, 302);
+    }
+
+    // Find or create user by google_id or email
+    let user = await env.DB
+      .prepare('SELECT * FROM users WHERE google_id = ?')
+      .bind(googleId)
+      .first();
+
+    if (!user && googleId) {
+      // Try to find by email and link google_id
+      const existingByEmail = await env.DB
+        .prepare('SELECT * FROM users WHERE email = ?')
+        .bind(googleEmail)
+        .first();
+
+      if (existingByEmail) {
+        // Link Google account to existing email account
+        await env.DB
+          .prepare('UPDATE users SET google_id = ? WHERE id = ?')
+          .bind(googleId, existingByEmail.id)
+          .run();
+        user = await env.DB
+          .prepare('SELECT * FROM users WHERE id = ?')
+          .bind(existingByEmail.id)
+          .first();
+      } else {
+        // Create new user
+        const userId = generateId();
+        await env.DB
+          .prepare(`
+            INSERT INTO users (id, email, google_id, free_quota, paid_credits)
+            VALUES (?, ?, ?, 10, 0)
+          `)
+          .bind(userId, googleEmail, googleId)
+          .run();
+        user = await env.DB
+          .prepare('SELECT * FROM users WHERE id = ?')
+          .bind(userId)
+          .first();
+      }
+    }
+
+    if (!user) {
+      return Response.redirect(`${frontendUrl}/login?error=user_creation_failed`, 302);
+    }
+
+    // Issue our own token
+    const token = createToken(user.id);
+    const returnTo = stateData.returnTo || '/';
+
+    // Redirect to frontend callback with token
+    const callbackUrl = new URL(`${frontendUrl}/auth/callback`);
+    callbackUrl.searchParams.set('token', token);
+    callbackUrl.searchParams.set('return_to', returnTo);
+    return Response.redirect(callbackUrl.toString(), 302);
+  } catch (error) {
+    console.error('Google OAuth error:', error);
+    return Response.redirect(`${frontendUrl}/login?error=oauth_error`, 302);
+  }
 }
 
 // GET: Check remaining quota/trials
@@ -529,8 +716,20 @@ export default {
       }
       
       if (path === '/api/auth/register') {
-        return request.method === 'POST' 
+        return request.method === 'POST'
           ? await handleRegister(request, env)
+          : new Response('Method not allowed', { status: 405 });
+      }
+
+      if (path === '/auth/google') {
+        return request.method === 'GET'
+          ? await handleGoogleAuth(request, env)
+          : new Response('Method not allowed', { status: 405 });
+      }
+
+      if (path === '/auth/google/callback') {
+        return request.method === 'GET'
+          ? await handleGoogleCallback(request, env)
           : new Response('Method not allowed', { status: 405 });
       }
     }
