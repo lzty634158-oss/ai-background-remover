@@ -25,6 +25,12 @@ export default function LoginPage() {
     setLang(savedLang);
     setT(translations[savedLang]);
 
+    // Already logged in? Redirect to home
+    if (localStorage.getItem('token')) {
+      router.push('/');
+      return;
+    }
+
     // Handle error from Google OAuth callback
     const params = new URLSearchParams(window.location.search);
     const errorParam = params.get('error');
