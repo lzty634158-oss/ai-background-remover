@@ -125,13 +125,13 @@ export default function Navbar({ t, lang, onLangChange }: NavbarProps) {
                       <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
                       </svg>
-                      Profile
+                      {t.personalCenter}
                     </Link>
                     <Link href="/login-history" className="flex items-center gap-2 px-3 py-2 text-gray-300 hover:bg-gray-700 transition-colors text-sm">
                       <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
                       </svg>
-                      Login History
+                      {t.loginHistory}
                     </Link>
                     <div className="border-t border-gray-700" />
                     <button onClick={handleLogout} className="w-full flex items-center gap-2 px-3 py-2 text-red-400 hover:bg-gray-700 transition-colors text-sm">

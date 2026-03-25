@@ -35,7 +35,6 @@ export default function LoginHistoryPage() {
       router.push('/login');
       return;
     }
-
     getLoginHistory(token, limit, pageNum * limit).then((res) => {
       if (res.success) {
         setRecords(res.records);
@@ -57,8 +56,23 @@ export default function LoginHistoryPage() {
       return;
     }
     fetchHistory(0);
-  // eslint-disable-next-line react-hooks/exhaustive-deps
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [router]);
+
+  const getRelativeTime = (date: Date): string => {
+    const now = new Date();
+    const diffMs = now.getTime() - date.getTime();
+    const diffSecs = Math.floor(diffMs / 1000);
+    const diffMins = Math.floor(diffSecs / 60);
+    const diffHours = Math.floor(diffMins / 60);
+    const diffDays = Math.floor(diffHours / 24);
+    if (diffSecs < 60) return t.justNow;
+    if (diffMins < 60) return `${diffMins}m ${t.ago}`;
+    if (diffHours < 24) return `${diffHours}h ${t.ago}`;
+    if (diffDays < 7) return `${diffDays}d ${t.ago}`;
+    if (diffDays < 30) return `${Math.floor(diffDays / 7)}w ${t.ago}`;
+    return `${Math.floor(diffDays / 30)}mo ${t.ago}`;
+  };
 
   const handleLogout = () => {
     localStorage.removeItem('token');
@@ -78,7 +92,7 @@ export default function LoginHistoryPage() {
             <path fill="currentColor" d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z" />
             <path fill="currentColor" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z" />
           </svg>
-          Google
+          {t.google}
         </span>
       );
     }
@@ -87,7 +101,7 @@ export default function LoginHistoryPage() {
         <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
         </svg>
-        Email
+        {t.email}
       </span>
     );
   };
@@ -251,15 +265,15 @@ export default function LoginHistoryPage() {
                       disabled={page === 0}
                       className="px-3 py-1.5 bg-gray-700/50 hover:bg-gray-600/50 disabled:opacity-30 disabled:cursor-not-allowed border border-gray-600 rounded-lg text-gray-300 text-sm transition-colors"
                     >
-                      Previous
+                      {t.previous}
                     </button>
-                    <span className="text-gray-400 text-sm px-2">Page {page + 1} / {totalPages}</span>
+                    <span className="text-gray-400 text-sm px-2">{t.pagination} {page + 1} / {totalPages}</span>
                     <button
                       onClick={() => fetchHistory(page + 1)}
                       disabled={page >= totalPages - 1}
                       className="px-3 py-1.5 bg-gray-700/50 hover:bg-gray-600/50 disabled:opacity-30 disabled:cursor-not-allowed border border-gray-600 rounded-lg text-gray-300 text-sm transition-colors"
                     >
-                      Next
+                      {t.next}
                     </button>
                   </div>
                 </div>
@@ -270,20 +284,4 @@ export default function LoginHistoryPage() {
       </main>
     </div>
   );
-}
-
-function getRelativeTime(date: Date): string {
-  const now = new Date();
-  const diffMs = now.getTime() - date.getTime();
-  const diffSecs = Math.floor(diffMs / 1000);
-  const diffMins = Math.floor(diffSecs / 60);
-  const diffHours = Math.floor(diffMins / 60);
-  const diffDays = Math.floor(diffHours / 24);
-
-  if (diffSecs < 60) return 'Just now';
-  if (diffMins < 60) return `${diffMins}m ago`;
-  if (diffHours < 24) return `${diffHours}h ago`;
-  if (diffDays < 7) return `${diffDays}d ago`;
-  if (diffDays < 30) return `${Math.floor(diffDays / 7)}w ago`;
-  return `${Math.floor(diffDays / 30)}mo ago`;
 }

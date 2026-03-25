@@ -142,8 +142,10 @@ export interface Translation {
   dateTime?: string;
   relativeTime?: string;
   google?: string;
-  justNow?: string;
-  ago?: string;
+  justNow: string;
+  ago: string;
   back?: string;
-  pagination?: string;
+  pagination: string;
+  previous: string;
+  next: string;
 }

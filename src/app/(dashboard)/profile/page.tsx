@@ -233,7 +233,7 @@ export default function ProfilePage() {
               )}
             </button>
             <div className="text-sm text-gray-500">
-              Member since {user?.createdAt ? new Date(user.createdAt).toLocaleDateString() : 'N/A'}
+              {t.memberSince}: {user?.createdAt ? new Date(user.createdAt).toLocaleDateString(lang === 'zh' ? 'zh-CN' : lang === 'ja' ? 'ja-JP' : lang === 'ko' ? 'ko-KR' : undefined) : 'N/A'}
             </div>
           </div>
         </Card>
@@ -254,15 +254,15 @@ export default function ProfilePage() {
             </div>
             <div className="bg-gray-700/30 rounded-lg p-4 text-center">
               <p className="text-2xl font-bold text-violet-400">{user?.freeQuota ?? 0}</p>
-              <p className="text-gray-400 text-xs mt-1">Free Quota</p>
+              <p className="text-gray-400 text-xs mt-1">{t.remainingQuota}</p>
             </div>
             <div className="bg-gray-700/30 rounded-lg p-4 text-center">
               <p className="text-2xl font-bold text-green-400">{user?.paidCredits ?? 0}</p>
-              <p className="text-gray-400 text-xs mt-1">Paid Credits</p>
+              <p className="text-gray-400 text-xs mt-1">{t.remainingCredits}</p>
             </div>
             <div className="bg-gray-700/30 rounded-lg p-4 text-center">
               <p className="text-2xl font-bold text-indigo-400">{user?.totalUsed ?? 0}</p>
-              <p className="text-gray-400 text-xs mt-1">Images Used</p>
+              <p className="text-gray-400 text-xs mt-1">{t.imagesUsed}</p>
             </div>
           </div>
 

@@ -66,6 +66,8 @@ export const translations: Record<Lang, Translation> = {
     ago: 'ago',
     back: 'Back',
     pagination: 'Page',
+    previous: 'Previous',
+    next: 'Next',
   },
   zh: {
     title: 'AI 背景去除器',
@@ -131,6 +133,8 @@ export const translations: Record<Lang, Translation> = {
     ago: '前',
     back: '返回',
     pagination: '第',
+    previous: '上一页',
+    next: '下一页',
   },
   ja: {
     title: 'AI 背景削除',
@@ -196,6 +200,8 @@ export const translations: Record<Lang, Translation> = {
     ago: '前',
     back: '戻る',
     pagination: 'ページ',
+    previous: '前へ',
+    next: '次へ',
   },
   ko: {
     title: 'AI 배경 제거기',
@@ -261,6 +267,8 @@ export const translations: Record<Lang, Translation> = {
     ago: '전',
     back: '뒤로',
     pagination: '페이지',
+    previous: '이전',
+    next: '다음',
   },
   es: {
     title: 'AI Eliminar Fondo',
@@ -326,6 +334,8 @@ export const translations: Record<Lang, Translation> = {
     ago: 'hace',
     back: 'Volver',
     pagination: 'Página',
+    previous: 'Anterior',
+    next: 'Siguiente',
   },
   fr: {
     title: 'AI Supprimeur de Fond',
@@ -391,6 +401,8 @@ export const translations: Record<Lang, Translation> = {
     ago: 'il y a',
     back: 'Retour',
     pagination: 'Page',
+    previous: 'Précédent',
+    next: 'Suivant',
   },
   de: {
     title: 'AI Hintergrundentferner',
@@ -456,5 +468,7 @@ export const translations: Record<Lang, Translation> = {
     ago: 'vor',
     back: 'Zurück',
     pagination: 'Seite',
+    previous: 'Zurück',
+    next: 'Weiter',
   },
 };
