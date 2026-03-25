@@ -3,7 +3,7 @@
 import Link from 'next/link';
 import { useState, useEffect } from 'react';
 import { Button } from '@/components/ui';
-import { Lang } from '@/lib/translations';
+import { Lang, Translation } from '@/types';
 
 interface User {
   id: string;
@@ -13,14 +13,7 @@ interface User {
 }
 
 interface NavbarProps {
-  t: {
-    login: string;
-    register: string;
-    logout: string;
-    dashboard: string;
-    remainingQuota: string;
-    remainingCredits: string;
-  };
+  t: Partial<Translation>;
   lang: Lang;
   onLangChange: (lang: Lang) => void;
 }

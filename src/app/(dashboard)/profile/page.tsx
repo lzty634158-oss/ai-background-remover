@@ -79,10 +79,11 @@ export default function ProfilePage() {
     setSaving(false);
 
     if (res.success) {
-      setMessage({ type: 'success', text: '{t.profileSaved}' });
+      setMessage({ type: 'success', text: t.profileSaved });
       if (res.user) setUser(res.user);
     } else {
-      setMessage({ type: 'error', text: res.message || '{t.profileSaveFailed}' });
+      const errMsg = res.message !== undefined ? res.message : t.profileSaveFailed;
+      setMessage({ type: 'error', text: errMsg });
     }
   };
 
@@ -138,21 +139,21 @@ export default function ProfilePage() {
             )}
             <div>
               <p className="text-white font-medium">{t.profilePhoto}</p>
-              <p className="text-gray-400 text-sm mt-0.5">{t.enterAvatarUrl}</p>
+              {avatarUrl && <p className="text-gray-400 text-sm mt-0.5">{t.enterAvatarUrl}</p>}
             </div>
           </div>
 
           {/* Form Fields */}
           <div className="space-y-4">
             <div>
-              <label className="block text-sm font-medium text-gray-300 mb-1.5">Email</label>
+              <label className="block text-sm font-medium text-gray-300 mb-1.5">{t.email}</label>
               <input
                 type="email"
                 value={user?.email || ''}
                 disabled
                 className="w-full px-4 py-2.5 bg-gray-700/50 border border-gray-600 rounded-lg text-gray-400 cursor-not-allowed"
               />
-              <p className="text-xs text-gray-500 mt-1">Email cannot be changed</p>
+              <p className="text-xs text-gray-500 mt-1">{t.emailCannotChange}</p>
             </div>
 
             <div>
@@ -162,7 +163,7 @@ export default function ProfilePage() {
                 value={name}
                 onChange={(e) => setName(e.target.value)}
                 maxLength={100}
-                placeholder="{t.enterDisplayName}"
+                placeholder={t.enterDisplayName}
                 className="w-full px-4 py-2.5 bg-gray-700/50 border border-gray-600 rounded-lg text-white placeholder-gray-500 focus:outline-none focus:border-violet-500 focus:ring-1 focus:ring-violet-500 transition-colors"
               />
             </div>
@@ -174,31 +175,31 @@ export default function ProfilePage() {
                 value={avatarUrl}
                 onChange={(e) => setAvatarUrl(e.target.value)}
                 maxLength={500}
-                placeholder="{t.enterAvatarUrl}"
+                placeholder={t.enterAvatarUrl}
                 className="w-full px-4 py-2.5 bg-gray-700/50 border border-gray-600 rounded-lg text-white placeholder-gray-500 focus:outline-none focus:border-violet-500 focus:ring-1 focus:ring-violet-500 transition-colors"
               />
             </div>
 
             <div>
-              <label className="block text-sm font-medium text-gray-300 mb-1.5">Phone</label>
+              <label className="block text-sm font-medium text-gray-300 mb-1.5">{t.phone}</label>
               <input
                 type="tel"
                 value={phone}
                 onChange={(e) => setPhone(e.target.value)}
                 maxLength={20}
-                placeholder="{t.enterPhone}"
+                placeholder={t.enterPhone}
                 className="w-full px-4 py-2.5 bg-gray-700/50 border border-gray-600 rounded-lg text-white placeholder-gray-500 focus:outline-none focus:border-violet-500 focus:ring-1 focus:ring-violet-500 transition-colors"
               />
             </div>
 
             <div>
-              <label className="block text-sm font-medium text-gray-300 mb-1.5">Bio</label>
+              <label className="block text-sm font-medium text-gray-300 mb-1.5">{t.bio}</label>
               <textarea
                 value={bio}
                 onChange={(e) => setBio(e.target.value)}
                 maxLength={500}
                 rows={3}
-                placeholder="{t.tellAboutYourself}"
+                placeholder={t.tellAboutYourself}
                 className="w-full px-4 py-2.5 bg-gray-700/50 border border-gray-600 rounded-lg text-white placeholder-gray-500 focus:outline-none focus:border-violet-500 focus:ring-1 focus:ring-violet-500 transition-colors resize-none"
               />
               <p className="text-xs text-gray-500 mt-1">{bio.length}{t.bioLength}</p>

@@ -127,8 +127,8 @@ export interface Translation {
   profilePhoto?: string;
   saveChanges?: string;
   saving?: string;
-  profileSaved?: string;
-  profileSaveFailed?: string;
+  profileSaved: string;
+  profileSaveFailed: string;
   accountOverview?: string;
   totalCredits?: string;
   backToProfile?: string;
