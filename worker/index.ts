@@ -11,7 +11,7 @@ export interface Env {
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
-  'Access-Control-Allow-Methods': 'GET, POST, OPTIONS',
+  'Access-Control-Allow-Methods': 'GET, POST, PATCH, PUT, DELETE, OPTIONS',
   'Access-Control-Allow-Headers': 'Content-Type, Authorization',
 };
 
@@ -72,6 +72,23 @@ function getGoogleOAuthURL(state: string): string {
     prompt: 'consent',
   });
   return `https://accounts.google.com/o/oauth2/v2/auth?${params}`;
+}
+
+// ─── Record login history helper ─────────────────────────
+async function recordLogin(env: Env, userId: string, provider: string, request: Request) {
+  const ip = request.headers.get('CF-Connecting-IP') || 'unknown';
+  const ua = (request.headers.get('User-Agent') || '').slice(0, 500);
+  await env.DB
+    .prepare(`
+      INSERT INTO login_history (id, user_id, ip_address, user_agent, provider)
+      VALUES (?, ?, ?, ?, ?)
+    `)
+    .bind(generateId(), userId, ip, ua, provider)
+    .run();
+  await env.DB
+    .prepare('UPDATE users SET last_login_at = datetime("now") WHERE id = ?')
+    .bind(userId)
+    .run();
 }
 
 // ─── Google OAuth endpoints ──────────────────────────────
@@ -209,10 +226,10 @@ async function handleGoogleCallback(request: Request, env: Env): Promise<Respons
         const userId = generateId();
         await env.DB
           .prepare(`
-            INSERT INTO users (id, email, google_id, free_quota, paid_credits)
-            VALUES (?, ?, ?, 10, 0)
+            INSERT INTO users (id, email, google_id, name, free_quota, paid_credits)
+            VALUES (?, ?, ?, ?, 10, 0)
           `)
-          .bind(userId, googleEmail, googleId)
+          .bind(userId, googleEmail, googleId, googleName)
           .run();
         user = await env.DB
           .prepare('SELECT * FROM users WHERE id = ?')
@@ -229,6 +246,9 @@ async function handleGoogleCallback(request: Request, env: Env): Promise<Respons
     const token = createToken(user.id);
     const returnTo = stateData.returnTo || '/';
 
+    // Record login history
+    await recordLogin(env, user.id, 'google', request);
+
     // Redirect to frontend callback with token
     const callbackUrl = new URL(`${frontendUrl}/auth/callback`);
     callbackUrl.searchParams.set('token', token);
@@ -242,13 +262,12 @@ async function handleGoogleCallback(request: Request, env: Env): Promise<Respons
 
 // GET: Check remaining quota/trials
 async function handleQuotaCheck(request: Request, env: Env): Promise<Response> {
-  const url = new URL(request.url);
   const clientIP = request.headers.get('CF-Connecting-IP') || 'unknown';
-  
+
   // Check if user is logged in
   const authHeader = request.headers.get('Authorization');
   const token = authHeader?.replace('Bearer ', '');
-  
+
   if (token) {
     const userId = verifyToken(token);
     if (userId) {
@@ -256,7 +275,7 @@ async function handleQuotaCheck(request: Request, env: Env): Promise<Response> {
         .prepare('SELECT * FROM users WHERE id = ?')
         .bind(userId)
         .first();
-      
+
       if (user) {
         return jsonResponse({
           isLoggedIn: true,
@@ -273,10 +292,10 @@ async function handleQuotaCheck(request: Request, env: Env): Promise<Response> {
     .prepare('SELECT trial_count FROM guest_trials WHERE ip_address = ?')
     .bind(clientIP)
     .first();
-  
+
   const guestTrials = guest?.trial_count || 0;
   const maxGuestTrials = 3;
-  
+
   return jsonResponse({
     isLoggedIn: false,
     guestTrialsRemaining: Math.max(0, maxGuestTrials - guestTrials),
@@ -285,16 +304,15 @@ async function handleQuotaCheck(request: Request, env: Env): Promise<Response> {
 
 // POST: Process image
 async function handleImageUpload(request: Request, env: Env): Promise<Response> {
-  const url = new URL(request.url);
   const clientIP = request.headers.get('CF-Connecting-IP') || 'unknown';
-  
+
   let userId: string | null = null;
   let isLoggedIn = false;
 
   // Check if user is logged in
   const authHeader = request.headers.get('Authorization');
   const token = authHeader?.replace('Bearer ', '');
-  
+
   if (token) {
     userId = verifyToken(token);
     if (userId) {
@@ -307,11 +325,11 @@ async function handleImageUpload(request: Request, env: Env): Promise<Response> 
     .prepare('SELECT trial_count FROM guest_trials WHERE ip_address = ?')
     .bind(clientIP)
     .first();
-  
+
   const guestTrials = guest?.trial_count || 0;
   const maxGuestTrials = 3;
   const isGuest = !isLoggedIn && guestTrials < maxGuestTrials;
-  
+
   // If not logged in and not a valid guest trial, block
   if (!isLoggedIn && !isGuest) {
     return jsonResponse(
@@ -399,7 +417,6 @@ async function handleImageUpload(request: Request, env: Env): Promise<Response> 
     // Convert result to base64 for direct response
     const resultBuffer = await response.arrayBuffer();
     const resultBase64 = btoa(String.fromCharCode(...new Uint8Array(resultBuffer)));
-    const filename = `${Date.now()}-${Math.random().toString(36).slice(2)}.png`;
 
     // Use quota if user is logged in
     let remainingQuota = 0;
@@ -408,7 +425,7 @@ async function handleImageUpload(request: Request, env: Env): Promise<Response> 
         .prepare('SELECT * FROM users WHERE id = ?')
         .bind(userId)
         .first();
-      
+
       if (user) {
         if (user.free_quota > 0) {
           await env.DB
@@ -455,7 +472,7 @@ async function handleImageUpload(request: Request, env: Env): Promise<Response> 
 
     // Return result with base64 data URL
     const guestTrialsRemaining = !isLoggedIn ? maxGuestTrials - guestTrials - 1 : undefined;
-    
+
     return jsonResponse({
       success: true,
       imageData: `data:image/png;base64,${resultBase64}`,
@@ -506,11 +523,18 @@ async function handleLogin(request: Request, env: Env): Promise<Response> {
 
     const token = createToken(user.id);
 
+    // Record login history
+    await recordLogin(env, user.id, 'email', request);
+
     return jsonResponse({
       success: true,
       user: {
         id: user.id,
         email: user.email,
+        name: user.name || '',
+        avatar_url: user.avatar_url || '',
+        bio: user.bio || '',
+        phone: user.phone || '',
         freeQuota: user.free_quota,
         paidCredits: user.paid_credits,
         createdAt: user.created_at,
@@ -569,8 +593,13 @@ async function handleRegister(request: Request, env: Env): Promise<Response> {
       user: {
         id: userId,
         email,
+        name: '',
+        avatar_url: '',
+        bio: '',
+        phone: '',
         freeQuota: 10,
         paidCredits: 0,
+        createdAt: new Date().toISOString(),
       },
       token,
     });
@@ -583,12 +612,11 @@ async function handleRegister(request: Request, env: Env): Promise<Response> {
   }
 }
 
-// Image serving endpoint (images are now returned as base64 in the API response)
-// This endpoint is kept for compatibility but redirects to the main API
+// Image serving endpoint
 async function handleGetImage(request: Request, env: Env): Promise<Response> {
-  return jsonResponse({ 
-    success: false, 
-    message: 'Images are now returned as base64 data URLs via the /api/images endpoint' 
+  return jsonResponse({
+    success: false,
+    message: 'Images are now returned as base64 data URLs via the /api/images endpoint',
   }, 404);
 }
 
@@ -626,11 +654,144 @@ async function handleGetUser(request: Request, env: Env): Promise<Response> {
     user: {
       id: user.id,
       email: user.email,
+      name: user.name || '',
+      avatar_url: user.avatar_url || '',
+      bio: user.bio || '',
+      phone: user.phone || '',
+      role: user.role || 'user',
+      status: user.status || 'active',
       freeQuota: user.free_quota,
       paidCredits: user.paid_credits,
       totalUsed: usage?.count || 0,
       createdAt: user.created_at,
+      lastLoginAt: user.last_login_at || '',
     },
+  });
+}
+
+// GET: Get user profile (alias for handleGetUser)
+async function handleGetProfile(request: Request, env: Env): Promise<Response> {
+  return await handleGetUser(request, env);
+}
+
+// PATCH: Update user profile
+async function handleUpdateProfile(request: Request, env: Env): Promise<Response> {
+  const authHeader = request.headers.get('Authorization');
+  const token = authHeader?.replace('Bearer ', '');
+
+  if (!token) {
+    return jsonResponse({ success: false, message: 'Unauthorized' }, 401);
+  }
+
+  const userId = verifyToken(token);
+  if (!userId) {
+    return jsonResponse({ success: false, message: 'Invalid or expired token' }, 401);
+  }
+
+  try {
+    const body = await request.json();
+    const { name, avatar_url, bio, phone } = body;
+
+    // Build dynamic update query
+    const updates: string[] = [];
+    const values: any[] = [];
+
+    if (name !== undefined) {
+      updates.push('name = ?');
+      values.push(name.slice(0, 100));
+    }
+    if (avatar_url !== undefined) {
+      updates.push('avatar_url = ?');
+      values.push(avatar_url.slice(0, 500));
+    }
+    if (bio !== undefined) {
+      updates.push('bio = ?');
+      values.push(bio.slice(0, 500));
+    }
+    if (phone !== undefined) {
+      updates.push('phone = ?');
+      values.push(phone.slice(0, 20));
+    }
+
+    if (updates.length === 0) {
+      return jsonResponse({ success: false, message: 'No fields to update' }, 400);
+    }
+
+    updates.push('updated_at = datetime("now")');
+    values.push(userId);
+
+    await env.DB
+      .prepare(`UPDATE users SET ${updates.join(', ')} WHERE id = ?`)
+      .bind(...values)
+      .run();
+
+    // Fetch updated user
+    const user = await env.DB
+      .prepare('SELECT * FROM users WHERE id = ?')
+      .bind(userId)
+      .first();
+
+    return jsonResponse({
+      success: true,
+      message: 'Profile updated',
+      user: {
+        id: user.id,
+        email: user.email,
+        name: user.name || '',
+        avatar_url: user.avatar_url || '',
+        bio: user.bio || '',
+        phone: user.phone || '',
+        freeQuota: user.free_quota,
+        paidCredits: user.paid_credits,
+        createdAt: user.created_at,
+      },
+    });
+  } catch (error) {
+    console.error('Update profile error:', error);
+    return jsonResponse({ success: false, message: 'Failed to update profile' }, 500);
+  }
+}
+
+// GET: Get login history
+async function handleGetLoginHistory(request: Request, env: Env): Promise<Response> {
+  const authHeader = request.headers.get('Authorization');
+  const token = authHeader?.replace('Bearer ', '');
+
+  if (!token) {
+    return jsonResponse({ success: false, message: 'Unauthorized' }, 401);
+  }
+
+  const userId = verifyToken(token);
+  if (!userId) {
+    return jsonResponse({ success: false, message: 'Invalid or expired token' }, 401);
+  }
+
+  const url = new URL(request.url);
+  const limit = Math.min(parseInt(url.searchParams.get('limit') || '20'), 50);
+  const offset = parseInt(url.searchParams.get('offset') || '0');
+
+  const records = await env.DB
+    .prepare(`
+      SELECT id, ip_address, user_agent, provider, created_at
+      FROM login_history
+      WHERE user_id = ?
+      ORDER BY created_at DESC
+      LIMIT ? OFFSET ?
+    `)
+    .bind(userId, limit, offset)
+    .all();
+
+  const total = await env.DB
+    .prepare('SELECT COUNT(*) as count FROM login_history WHERE user_id = ?')
+    .bind(userId)
+    .first();
+
+  return jsonResponse({
+    success: true,
+    records: records.results,
+    total: total?.count || 0,
+    limit,
+    offset,
   });
 }
 
@@ -690,16 +851,30 @@ export default {
     // API routes
     if (path.startsWith('/api/')) {
       if (path === '/api/images') {
-        return request.method === 'GET' 
+        return request.method === 'GET'
           ? await handleQuotaCheck(request, env)
           : request.method === 'POST'
           ? await handleImageUpload(request, env)
           : new Response('Method not allowed', { status: 405 });
       }
-      
+
       if (path === '/api/user') {
         return request.method === 'GET'
           ? await handleGetUser(request, env)
+          : new Response('Method not allowed', { status: 405 });
+      }
+
+      if (path === '/api/user/profile') {
+        return request.method === 'GET'
+          ? await handleGetProfile(request, env)
+          : request.method === 'PATCH' || request.method === 'PUT'
+          ? await handleUpdateProfile(request, env)
+          : new Response('Method not allowed', { status: 405 });
+      }
+
+      if (path === '/api/user/login-history') {
+        return request.method === 'GET'
+          ? await handleGetLoginHistory(request, env)
           : new Response('Method not allowed', { status: 405 });
       }
 
@@ -708,30 +883,31 @@ export default {
           ? await handleGetHistory(request, env)
           : new Response('Method not allowed', { status: 405 });
       }
-      
+
       if (path === '/api/auth/login') {
-        return request.method === 'POST' 
+        return request.method === 'POST'
           ? await handleLogin(request, env)
           : new Response('Method not allowed', { status: 405 });
       }
-      
+
       if (path === '/api/auth/register') {
         return request.method === 'POST'
           ? await handleRegister(request, env)
           : new Response('Method not allowed', { status: 405 });
       }
+    }
 
-      if (path === '/auth/google') {
-        return request.method === 'GET'
-          ? await handleGoogleAuth(request, env)
-          : new Response('Method not allowed', { status: 405 });
-      }
+    // OAuth routes
+    if (path === '/auth/google') {
+      return request.method === 'GET'
+        ? await handleGoogleAuth(request, env)
+        : new Response('Method not allowed', { status: 405 });
+    }
 
-      if (path === '/auth/google/callback') {
-        return request.method === 'GET'
-          ? await handleGoogleCallback(request, env)
-          : new Response('Method not allowed', { status: 405 });
-      }
+    if (path === '/auth/google/callback') {
+      return request.method === 'GET'
+        ? await handleGoogleCallback(request, env)
+        : new Response('Method not allowed', { status: 405 });
     }
 
     // Image serving from R2

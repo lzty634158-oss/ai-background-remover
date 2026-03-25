@@ -3,19 +3,45 @@
 export interface User {
   id: string;
   email: string;
-  password: string;
+  name: string;
+  avatar_url: string;
+  bio: string;
+  phone: string;
+  role: string;
+  status: string;
   freeQuota: number;
   paidCredits: number;
+  totalUsed?: number;
   createdAt: string;
-  updatedAt: string;
+  lastLoginAt?: string;
 }
 
 export interface UserResponse {
   id: string;
   email: string;
+  name?: string;
+  avatar_url?: string;
+  bio?: string;
+  phone?: string;
   freeQuota: number;
   paidCredits: number;
   createdAt: string;
+}
+
+export interface LoginHistoryRecord {
+  id: string;
+  ip_address: string;
+  user_agent: string;
+  provider: string;
+  created_at: string;
+}
+
+export interface LoginHistoryResponse {
+  success: boolean;
+  records: LoginHistoryRecord[];
+  total: number;
+  limit: number;
+  offset: number;
 }
 
 export interface ImageRecord {
@@ -44,6 +70,13 @@ export interface ImageUploadResponse {
   imageUrl?: string;
   message?: string;
   remainingQuota?: number;
+}
+
+export interface ProfileUpdateRequest {
+  name?: string;
+  avatar_url?: string;
+  bio?: string;
+  phone?: string;
 }
 
 export type Lang = 'en' | 'zh' | 'ja' | 'ko' | 'es' | 'fr' | 'de';

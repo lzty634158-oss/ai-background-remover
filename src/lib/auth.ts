@@ -10,10 +10,17 @@ const WORKER_URL = 'https://ai-background-remover-api.lzty634158.workers.dev';
 export interface User {
   id: string;
   email: string;
+  name: string;
+  avatar_url: string;
+  bio: string;
+  phone: string;
+  role: string;
+  status: string;
   freeQuota: number;
   paidCredits: number;
   totalUsed?: number;
   createdAt: string;
+  lastLoginAt?: string;
 }
 
 export interface AuthResponse {
@@ -34,6 +41,22 @@ export interface HistoryRecord {
 export interface HistoryResponse {
   success: boolean;
   records: HistoryRecord[];
+  total: number;
+  limit: number;
+  offset: number;
+}
+
+export interface LoginHistoryRecord {
+  id: string;
+  ip_address: string;
+  user_agent: string;
+  provider: string;
+  created_at: string;
+}
+
+export interface LoginHistoryResponse {
+  success: boolean;
+  records: LoginHistoryRecord[];
   total: number;
   limit: number;
   offset: number;
@@ -84,16 +107,42 @@ export async function addCredits(token: string, credits: number): Promise<{ succ
   return res.json();
 }
 
+// ─── Profile API ──────────────────────────────────────────
+export async function updateProfile(
+  token: string,
+  data: { name?: string; avatar_url?: string; bio?: string; phone?: string }
+): Promise<{ success: boolean; user?: User; message?: string }> {
+  const res = await fetch(`${WORKER_URL}/api/user/profile`, {
+    method: 'PATCH',
+    headers: {
+      'Content-Type': 'application/json',
+      Authorization: `Bearer ${token}`,
+    },
+    body: JSON.stringify(data),
+  });
+  return res.json();
+}
+
+// ─── Login History API ─────────────────────────────────────
+export async function getLoginHistory(
+  token: string,
+  limit = 20,
+  offset = 0
+): Promise<LoginHistoryResponse> {
+  const res = await fetch(`${WORKER_URL}/api/user/login-history?limit=${limit}&offset=${offset}`, {
+    headers: { Authorization: `Bearer ${token}` },
+  });
+  return res.json();
+}
+
 // ─── Token helpers (browser-safe, no Node.js Buffer) ─────
 export function generateToken(userId: string): string {
-  // Simple base64url encoding without Node.js Buffer
   const payload = userId + ':' + Date.now();
   return btoa(payload).replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '');
 }
 
 export function verifyToken(token: string): string | null {
   try {
-    // Restore base64 padding and standard base64
     const padded = token.replace(/-/g, '+').replace(/_/g, '/');
     const decoded = atob(padded);
     const [userId, timestamp] = decoded.split(':');
