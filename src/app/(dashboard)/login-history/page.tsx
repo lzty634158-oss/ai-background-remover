@@ -145,8 +145,8 @@ export default function LoginHistoryPage() {
         {/* Page Header */}
         <div className="mb-8 flex items-center justify-between">
           <div>
-            <h1 className="text-3xl font-bold text-white">Login History</h1>
-            <p className="text-gray-400 mt-1">Track your account access log · {total} records</p>
+            <h1 className="text-3xl font-bold text-white">{t.loginHistory}</h1>
+            <p className="text-gray-400 mt-1">{t.trackAccessLog} · {total} {t.records}</p>
           </div>
           <button
             onClick={() => router.push('/profile')}
@@ -155,7 +155,7 @@ export default function LoginHistoryPage() {
             <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 19l-7-7m0 0l7-7m-7 7h18" />
             </svg>
-            Back to Profile
+            {t.backToProfile}
           </button>
         </div>
 
@@ -166,17 +166,17 @@ export default function LoginHistoryPage() {
               <svg className="w-12 h-12 mx-auto text-gray-600 mb-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
               </svg>
-              <p className="text-gray-400">No login history found</p>
+              <p className="text-gray-400">{t.noLoginHistory}</p>
             </div>
           ) : (
             <>
               {/* Desktop Table Header */}
               <div className="hidden sm:grid grid-cols-12 gap-4 px-6 py-3 bg-gray-900/50 border-b border-gray-700 text-xs font-medium text-gray-400 uppercase tracking-wider">
-                <div className="col-span-1">Type</div>
-                <div className="col-span-3">Browser / Device</div>
-                <div className="col-span-3">IP Address</div>
-                <div className="col-span-3">Date & Time</div>
-                <div className="col-span-2">Relative Time</div>
+                <div className="col-span-1">{t.google}</div>
+                <div className="col-span-3">{t.browserDevice}</div>
+                <div className="col-span-3">{t.ipAddress}</div>
+                <div className="col-span-3">{t.dateTime}</div>
+                <div className="col-span-2">{t.relativeTime}</div>
               </div>
 
               {/* Records */}
@@ -243,7 +243,7 @@ export default function LoginHistoryPage() {
               {totalPages > 1 && (
                 <div className="px-6 py-4 border-t border-gray-700 flex items-center justify-between">
                   <p className="text-gray-400 text-sm">
-                    Showing {page * limit + 1}–{Math.min((page + 1) * limit, total)} of {total}
+                    {t.pagination} {page * limit + 1}–{Math.min((page + 1) * limit, total)} {total}
                   </p>
                   <div className="flex items-center gap-2">
                     <button

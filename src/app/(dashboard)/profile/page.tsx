@@ -79,10 +79,10 @@ export default function ProfilePage() {
     setSaving(false);
 
     if (res.success) {
-      setMessage({ type: 'success', text: 'Profile updated successfully!' });
+      setMessage({ type: 'success', text: '{t.profileSaved}' });
       if (res.user) setUser(res.user);
     } else {
-      setMessage({ type: 'error', text: res.message || 'Failed to update profile' });
+      setMessage({ type: 'error', text: res.message || '{t.profileSaveFailed}' });
     }
   };
 
@@ -109,8 +109,8 @@ export default function ProfilePage() {
       <main className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         {/* Page Header */}
         <div className="mb-8">
-          <h1 className="text-3xl font-bold text-white">Personal Center</h1>
-          <p className="text-gray-400 mt-1">Manage your profile information</p>
+          <h1 className="text-3xl font-bold text-white">{t.personalCenter}</h1>
+          <p className="text-gray-400 mt-1">{t.profileInfo}</p>
         </div>
 
         {/* Profile Card */}
@@ -119,7 +119,7 @@ export default function ProfilePage() {
             <svg className="w-5 h-5 text-violet-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
             </svg>
-            Profile Information
+            {t.profileInfo}
           </h2>
 
           {/* Avatar Preview */}
@@ -137,8 +137,8 @@ export default function ProfilePage() {
               </div>
             )}
             <div>
-              <p className="text-white font-medium">Profile Photo</p>
-              <p className="text-gray-400 text-sm mt-0.5">Enter avatar URL below</p>
+              <p className="text-white font-medium">{t.profilePhoto}</p>
+              <p className="text-gray-400 text-sm mt-0.5">{t.enterAvatarUrl}</p>
             </div>
           </div>
 
@@ -156,25 +156,25 @@ export default function ProfilePage() {
             </div>
 
             <div>
-              <label className="block text-sm font-medium text-gray-300 mb-1.5">Display Name</label>
+              <label className="block text-sm font-medium text-gray-300 mb-1.5">{t.displayName}</label>
               <input
                 type="text"
                 value={name}
                 onChange={(e) => setName(e.target.value)}
                 maxLength={100}
-                placeholder="Enter your display name"
+                placeholder="{t.enterDisplayName}"
                 className="w-full px-4 py-2.5 bg-gray-700/50 border border-gray-600 rounded-lg text-white placeholder-gray-500 focus:outline-none focus:border-violet-500 focus:ring-1 focus:ring-violet-500 transition-colors"
               />
             </div>
 
             <div>
-              <label className="block text-sm font-medium text-gray-300 mb-1.5">Avatar URL</label>
+              <label className="block text-sm font-medium text-gray-300 mb-1.5">{t.avatarUrl}</label>
               <input
                 type="url"
                 value={avatarUrl}
                 onChange={(e) => setAvatarUrl(e.target.value)}
                 maxLength={500}
-                placeholder="https://example.com/avatar.jpg"
+                placeholder="{t.enterAvatarUrl}"
                 className="w-full px-4 py-2.5 bg-gray-700/50 border border-gray-600 rounded-lg text-white placeholder-gray-500 focus:outline-none focus:border-violet-500 focus:ring-1 focus:ring-violet-500 transition-colors"
               />
             </div>
@@ -186,7 +186,7 @@ export default function ProfilePage() {
                 value={phone}
                 onChange={(e) => setPhone(e.target.value)}
                 maxLength={20}
-                placeholder="Enter your phone number"
+                placeholder="{t.enterPhone}"
                 className="w-full px-4 py-2.5 bg-gray-700/50 border border-gray-600 rounded-lg text-white placeholder-gray-500 focus:outline-none focus:border-violet-500 focus:ring-1 focus:ring-violet-500 transition-colors"
               />
             </div>
@@ -198,10 +198,10 @@ export default function ProfilePage() {
                 onChange={(e) => setBio(e.target.value)}
                 maxLength={500}
                 rows={3}
-                placeholder="Tell us about yourself..."
+                placeholder="{t.tellAboutYourself}"
                 className="w-full px-4 py-2.5 bg-gray-700/50 border border-gray-600 rounded-lg text-white placeholder-gray-500 focus:outline-none focus:border-violet-500 focus:ring-1 focus:ring-violet-500 transition-colors resize-none"
               />
-              <p className="text-xs text-gray-500 mt-1">{bio.length}/500</p>
+              <p className="text-xs text-gray-500 mt-1">{bio.length}{t.bioLength}</p>
             </div>
           </div>
 
@@ -220,14 +220,14 @@ export default function ProfilePage() {
               {saving ? (
                 <>
                   <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
-                  Saving...
+                  {t.saving}
                 </>
               ) : (
                 <>
                   <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
                   </svg>
-                  Save Changes
+                  {t.saveChanges}
                 </>
               )}
             </button>
@@ -243,13 +243,13 @@ export default function ProfilePage() {
             <svg className="w-5 h-5 text-violet-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
             </svg>
-            Account Overview
+            {t.accountOverview}
           </h2>
 
           <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
             <div className="bg-gray-700/30 rounded-lg p-4 text-center">
               <p className="text-2xl font-bold text-white">{totalQuota}</p>
-              <p className="text-gray-400 text-xs mt-1">Total Credits</p>
+              <p className="text-gray-400 text-xs mt-1">{t.totalCredits}</p>
             </div>
             <div className="bg-gray-700/30 rounded-lg p-4 text-center">
               <p className="text-2xl font-bold text-violet-400">{user?.freeQuota ?? 0}</p>
@@ -273,7 +273,7 @@ export default function ProfilePage() {
               <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
               </svg>
-              Login History
+              {t.loginHistory}
             </button>
             <button
               onClick={() => router.push('/history')}
@@ -282,7 +282,7 @@ export default function ProfilePage() {
               <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
               </svg>
-              Processing History
+              {t.processingHistory}
             </button>
           </div>
         </Card>
