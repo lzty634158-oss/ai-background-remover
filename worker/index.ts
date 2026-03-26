@@ -674,6 +674,67 @@ async function handleGetProfile(request: Request, env: Env): Promise<Response> {
   return await handleGetUser(request, env);
 }
 
+// POST: Change password
+async function handleChangePassword(request: Request, env: Env): Promise<Response> {
+  const authHeader = request.headers.get('Authorization');
+  const token = authHeader?.replace('Bearer ', '');
+
+  if (!token) {
+    return jsonResponse({ success: false, message: 'Unauthorized' }, 401);
+  }
+
+  const userId = verifyToken(token);
+  if (!userId) {
+    return jsonResponse({ success: false, message: 'Invalid or expired token' }, 401);
+  }
+
+  try {
+    const { currentPassword, newPassword } = await request.json();
+
+    if (!currentPassword || !newPassword) {
+      return jsonResponse({ success: false, message: 'Current and new password are required' }, 400);
+    }
+
+    if (newPassword.length < 6) {
+      return jsonResponse({ success: false, message: 'New password must be at least 6 characters' }, 400);
+    }
+
+    // Fetch user
+    const user = await env.DB
+      .prepare('SELECT * FROM users WHERE id = ?')
+      .bind(userId)
+      .first();
+
+    if (!user) {
+      return jsonResponse({ success: false, message: 'User not found' }, 404);
+    }
+
+    // If user has password (not OAuth-only), verify current password
+    if (user.password) {
+      const isValid = await verifyPassword(currentPassword, user.password);
+      if (!isValid) {
+        return jsonResponse({ success: false, message: 'Current password is incorrect' }, 403);
+      }
+    } else {
+      // OAuth-only account: allow setting a password for the first time
+      if (currentPassword !== '') {
+        return jsonResponse({ success: false, message: 'Current password is incorrect' }, 403);
+      }
+    }
+
+    const hashedPassword = await hashPassword(newPassword);
+    await env.DB
+      .prepare('UPDATE users SET password = ?, updated_at = datetime("now") WHERE id = ?')
+      .bind(hashedPassword, userId)
+      .run();
+
+    return jsonResponse({ success: true, message: 'Password updated successfully' });
+  } catch (error) {
+    console.error('Change password error:', error);
+    return jsonResponse({ success: false, message: 'Failed to change password' }, 500);
+  }
+}
+
 // PATCH: Update user profile
 async function handleUpdateProfile(request: Request, env: Env): Promise<Response> {
   const authHeader = request.headers.get('Authorization');
@@ -869,6 +930,12 @@ export default {
           ? await handleGetProfile(request, env)
           : request.method === 'PATCH' || request.method === 'PUT'
           ? await handleUpdateProfile(request, env)
+          : new Response('Method not allowed', { status: 405 });
+      }
+
+      if (path === '/api/user/change-password') {
+        return request.method === 'POST'
+          ? await handleChangePassword(request, env)
           : new Response('Method not allowed', { status: 405 });
       }
 

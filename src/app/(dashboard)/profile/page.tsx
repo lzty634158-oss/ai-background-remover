@@ -4,7 +4,7 @@ import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import AppHeader from '@/components/AppHeader';
 import { Card } from '@/components/ui';
-import { getUser, getToken, updateProfile, type User } from '@/lib/auth';
+import { getUser, getToken, updateProfile, changePassword, type User } from '@/lib/auth';
 import { translations, type Lang, type Translation } from '@/lib/translations';
 
 export default function ProfilePage() {
@@ -20,6 +20,14 @@ export default function ProfilePage() {
   const [bio, setBio] = useState('');
   const [phone, setPhone] = useState('');
   const [avatarUrl, setAvatarUrl] = useState('');
+
+  // Password change state
+  const [showPasswordSection, setShowPasswordSection] = useState(false);
+  const [currentPassword, setCurrentPassword] = useState('');
+  const [newPassword, setNewPassword] = useState('');
+  const [confirmPassword, setConfirmPassword] = useState('');
+  const [passwordMsg, setPasswordMsg] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
+  const [changingPassword, setChangingPassword] = useState(false);
 
   useEffect(() => {
     const savedLang = (localStorage.getItem('lang') as Lang) || 'zh';
@@ -84,6 +92,37 @@ export default function ProfilePage() {
     } else {
       const errMsg = res.message !== undefined ? res.message : t.profileSaveFailed;
       setMessage({ type: 'error', text: errMsg });
+    }
+  };
+
+  const handleChangePassword = async () => {
+    const token = getToken();
+    if (!token) return;
+
+    if (newPassword.length < 6) {
+      setPasswordMsg({ type: 'error', text: t.passwordTooShort ?? "Password must be at least 6 characters" });
+      return;
+    }
+    if (newPassword !== confirmPassword) {
+      setPasswordMsg({ type: 'error', text: t.passwordMismatch ?? "Passwords do not match" });
+      return;
+    }
+
+    setChangingPassword(true);
+    setPasswordMsg(null);
+
+    const res = await changePassword(token, currentPassword, newPassword);
+
+    setChangingPassword(false);
+
+    if (res.success) {
+      setPasswordMsg({ type: 'success', text: t.passwordChanged ?? "Password updated successfully!" });
+      setCurrentPassword('');
+      setNewPassword('');
+      setConfirmPassword('');
+      setShowPasswordSection(false);
+    } else {
+      setPasswordMsg({ type: 'error', text: (res.message || t.passwordChangeFailed) ?? "Failed to change password" });
     }
   };
 
@@ -286,6 +325,108 @@ export default function ProfilePage() {
               {t.processingHistory}
             </button>
           </div>
+        </Card>
+
+        {/* Security Settings */}
+        <Card className="bg-gray-800/60 border-gray-700 p-6">
+          <div className="flex items-center justify-between mb-6">
+            <h2 className="text-lg font-semibold text-white flex items-center gap-2">
+              <svg className="w-5 h-5 text-violet-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
+              </svg>
+              {t.securitySettings}
+            </h2>
+            {!showPasswordSection && (
+              <button
+                onClick={() => setShowPasswordSection(true)}
+                className="px-4 py-2 bg-gray-700/50 hover:bg-gray-600/50 border border-gray-600 rounded-lg text-gray-300 text-sm transition-colors"
+              >
+                {t.changePassword}
+              </button>
+            )}
+          </div>
+
+          {!showPasswordSection ? (
+            <div className="flex items-center gap-3 text-gray-400 text-sm">
+              <svg className="w-4 h-4 text-green-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+              </svg>
+              {t.passwordProtected}
+            </div>
+          ) : (
+            <div className="space-y-4">
+              <div>
+                <label className="block text-sm font-medium text-gray-300 mb-1.5">{t.currentPassword}</label>
+                <input
+                  type="password"
+                  value={currentPassword}
+                  onChange={(e) => setCurrentPassword(e.target.value)}
+                  placeholder={t.enterCurrentPassword}
+                  className="w-full px-4 py-2.5 bg-gray-700/50 border border-gray-600 rounded-lg text-white placeholder-gray-500 focus:outline-none focus:border-violet-500 focus:ring-1 focus:ring-violet-500 transition-colors"
+                />
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-300 mb-1.5">{t.newPassword}</label>
+                <input
+                  type="password"
+                  value={newPassword}
+                  onChange={(e) => setNewPassword(e.target.value)}
+                  placeholder={t.enterNewPassword}
+                  className="w-full px-4 py-2.5 bg-gray-700/50 border border-gray-600 rounded-lg text-white placeholder-gray-500 focus:outline-none focus:border-violet-500 focus:ring-1 focus:ring-violet-500 transition-colors"
+                />
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-300 mb-1.5">{t.confirmNewPassword}</label>
+                <input
+                  type="password"
+                  value={confirmPassword}
+                  onChange={(e) => setConfirmPassword(e.target.value)}
+                  placeholder={t.enterConfirmPassword}
+                  className="w-full px-4 py-2.5 bg-gray-700/50 border border-gray-600 rounded-lg text-white placeholder-gray-500 focus:outline-none focus:border-violet-500 focus:ring-1 focus:ring-violet-500 transition-colors"
+                />
+              </div>
+
+              {passwordMsg && (
+                <div className={`px-4 py-3 rounded-lg text-sm ${passwordMsg.type === 'success' ? 'bg-green-500/10 text-green-400 border border-green-500/20' : 'bg-red-500/10 text-red-400 border border-red-500/20'}`}>
+                  {passwordMsg.text}
+                </div>
+              )}
+
+              <div className="flex gap-3">
+                <button
+                  onClick={handleChangePassword}
+                  disabled={changingPassword}
+                  className="px-6 py-2.5 bg-gradient-to-r from-violet-600 to-indigo-600 hover:from-violet-500 hover:to-indigo-500 disabled:opacity-50 disabled:cursor-not-allowed text-white font-medium rounded-lg transition-all flex items-center gap-2"
+                >
+                  {changingPassword ? (
+                    <>
+                      <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
+                      {t.saving}
+                    </>
+                  ) : (
+                    <>
+                      <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                      </svg>
+                      {t.savePassword}
+                    </>
+                  )}
+                </button>
+                <button
+                  onClick={() => {
+                    setShowPasswordSection(false);
+                    setCurrentPassword('');
+                    setNewPassword('');
+                    setConfirmPassword('');
+                    setPasswordMsg(null);
+                  }}
+                  className="px-6 py-2.5 bg-gray-700/50 hover:bg-gray-600/50 border border-gray-600 rounded-lg text-gray-300 font-medium transition-colors"
+                >
+                  {t.cancel}
+                </button>
+              </div>
+            </div>
+          )}
         </Card>
       </main>
     </div>

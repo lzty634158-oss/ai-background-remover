@@ -148,4 +148,20 @@ export interface Translation {
   pagination: string;
   previous: string;
   next: string;
+  // Security settings
+  securitySettings?: string;
+  changePassword?: string;
+  currentPassword?: string;
+  newPassword?: string;
+  confirmNewPassword?: string;
+  enterCurrentPassword?: string;
+  enterNewPassword?: string;
+  enterConfirmPassword?: string;
+  passwordTooShort?: string;
+  passwordMismatch?: string;
+  passwordChanged?: string;
+  passwordChangeFailed?: string;
+  passwordProtected?: string;
+  savePassword?: string;
+  cancel?: string;
 }

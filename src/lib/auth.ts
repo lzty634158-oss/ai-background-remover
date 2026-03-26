@@ -123,6 +123,22 @@ export async function updateProfile(
   return res.json();
 }
 
+export async function changePassword(
+  token: string,
+  currentPassword: string,
+  newPassword: string
+): Promise<{ success: boolean; message?: string }> {
+  const res = await fetch(`${WORKER_URL}/api/user/change-password`, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      Authorization: `Bearer ${token}`,
+    },
+    body: JSON.stringify({ currentPassword, newPassword }),
+  });
+  return res.json();
+}
+
 // ─── Login History API ─────────────────────────────────────
 export async function getLoginHistory(
   token: string,
