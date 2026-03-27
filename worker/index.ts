@@ -665,6 +665,8 @@ async function handleGetUser(request: Request, env: Env): Promise<Response> {
       totalUsed: usage?.count || 0,
       createdAt: user.created_at,
       lastLoginAt: user.last_login_at || '',
+      hasPassword: !!user.password,
+      provider: user.google_id ? 'google' : 'local',
     },
   });
 }

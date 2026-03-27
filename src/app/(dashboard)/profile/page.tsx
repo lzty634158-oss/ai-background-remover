@@ -29,6 +29,9 @@ export default function ProfilePage() {
   const [passwordMsg, setPasswordMsg] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
   const [changingPassword, setChangingPassword] = useState(false);
 
+  // 是否是 OAuth 用户（无密码）
+  const isOAuthUser = !user?.hasPassword;
+
   useEffect(() => {
     const savedLang = (localStorage.getItem('lang') as Lang) || 'zh';
     setLang(savedLang);
@@ -111,7 +114,7 @@ export default function ProfilePage() {
     setChangingPassword(true);
     setPasswordMsg(null);
 
-    const res = await changePassword(token, currentPassword, newPassword);
+    const res = await changePassword(token, isOAuthUser ? '' : currentPassword, newPassword);
 
     setChangingPassword(false);
 
@@ -341,7 +344,7 @@ export default function ProfilePage() {
                 onClick={() => setShowPasswordSection(true)}
                 className="px-4 py-2 bg-gray-700/50 hover:bg-gray-600/50 border border-gray-600 rounded-lg text-gray-300 text-sm transition-colors"
               >
-                {t.changePassword}
+                {isOAuthUser ? (t.setPassword ?? '设置密码') : t.changePassword}
               </button>
             )}
           </div>
@@ -351,10 +354,11 @@ export default function ProfilePage() {
               <svg className="w-4 h-4 text-green-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
               </svg>
-              {t.passwordProtected}
+              {isOAuthUser ? t.passwordNotSet ?? 'Password not set — click to set one' : t.passwordProtected}
             </div>
           ) : (
             <div className="space-y-4">
+              {!isOAuthUser && (
               <div>
                 <label className="block text-sm font-medium text-gray-300 mb-1.5">{t.currentPassword}</label>
                 <input
@@ -365,6 +369,7 @@ export default function ProfilePage() {
                   className="w-full px-4 py-2.5 bg-gray-700/50 border border-gray-600 rounded-lg text-white placeholder-gray-500 focus:outline-none focus:border-violet-500 focus:ring-1 focus:ring-violet-500 transition-colors"
                 />
               </div>
+              )}
               <div>
                 <label className="block text-sm font-medium text-gray-300 mb-1.5">{t.newPassword}</label>
                 <input

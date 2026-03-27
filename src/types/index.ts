@@ -14,6 +14,8 @@ export interface User {
   totalUsed?: number;
   createdAt: string;
   lastLoginAt?: string;
+  hasPassword?: boolean;
+  provider?: 'google' | 'local';
 }
 
 export interface UserResponse {
