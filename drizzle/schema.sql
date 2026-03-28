@@ -68,3 +68,16 @@ CREATE INDEX IF NOT EXISTS idx_image_records_user_id ON image_records(user_id);
 CREATE INDEX IF NOT EXISTS idx_guest_trials_ip ON guest_trials(ip_address);
 CREATE INDEX IF NOT EXISTS idx_users_email ON users(email);
 CREATE INDEX IF NOT EXISTS idx_login_history_user_id ON login_history(user_id);
+
+-- Pending users table (for email verification)
+CREATE TABLE IF NOT EXISTS pending_users (
+  id TEXT PRIMARY KEY,
+  email TEXT UNIQUE NOT NULL,
+  password TEXT NOT NULL,
+  verification_code TEXT NOT NULL,
+  expires_at TEXT NOT NULL,
+  created_at TEXT DEFAULT (datetime('now'))
+);
+
+CREATE INDEX IF NOT EXISTS idx_pending_users_email ON pending_users(email);
+CREATE INDEX IF NOT EXISTS idx_pending_users_code ON pending_users(verification_code);

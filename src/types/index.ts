@@ -166,4 +166,19 @@ export interface Translation {
   passwordProtected?: string;
   savePassword?: string;
   cancel?: string;
+  // Email verification
+  enterVerificationCode?: string;
+  verificationCode?: string;
+  verifyEmail?: string;
+  codeSentTo?: string;
+  didNotReceiveCode?: string;
+  resendCode?: string;
+  codeExpired?: string;
+  invalidCode?: string;
+  verificationSuccess?: string;
+  registerSuccess?: string;
+  backToRegister?: string;
+  verifying?: string;
+  setPassword?: string;
+  passwordNotSet?: string;
 }

@@ -7,6 +7,8 @@ export interface Env {
   GOOGLE_CLIENT_ID: string;
   GOOGLE_CLIENT_SECRET: string;
   FRONTEND_URL: string;
+  RESEND_API_KEY: string;
+  RESEND_FROM_EMAIL: string;
 }
 
 const corsHeaders = {
@@ -54,6 +56,74 @@ function verifyToken(token: string): string | null {
 
 function generateId(): string {
   return `${Date.now()}-${Math.random().toString(36).slice(2, 11)}`;
+}
+
+// ─── Email Verification helpers ───────────────────────────
+function generateVerificationCode(): string {
+  return Math.floor(100000 + Math.random() * 900000).toString();
+}
+
+async function sendVerificationEmail(env: Env, email: string, code: string): Promise<boolean> {
+  if (!env.RESEND_API_KEY || !env.RESEND_FROM_EMAIL) {
+    console.error('Resend API not configured');
+    return false;
+  }
+
+  const frontendUrl = env.FRONTEND_URL || 'https://ai-background-remover-5h2.pages.dev';
+
+  const htmlContent = `
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <style>
+    body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; background: #1a1a2e; margin: 0; padding: 20px; }
+    .container { max-width: 480px; margin: 0 auto; background: #16213e; border-radius: 16px; padding: 40px; }
+    .logo { font-size: 28px; font-weight: bold; color: #7c3aed; text-align: center; margin-bottom: 30px; }
+    .title { color: #ffffff; font-size: 20px; text-align: center; margin-bottom: 20px; }
+    .code { background: linear-gradient(135deg, #7c3aed, #a855f7); color: white; font-size: 36px; font-weight: bold; text-align: center; padding: 20px; border-radius: 12px; letter-spacing: 8px; margin: 30px 0; }
+    .tip { color: #94a3b8; font-size: 14px; text-align: center; line-height: 1.6; }
+    .footer { color: #64748b; font-size: 12px; text-align: center; margin-top: 30px; }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <div class="logo">🎨 AI Background Remover</div>
+    <div class="title">Your Verification Code</div>
+    <div class="code">${code}</div>
+    <p class="tip">This code will expire in <strong>10 minutes</strong>.<br>Please enter it on the registration page to verify your email.</p>
+    <p class="footer">If you didn't request this, please ignore this email.</p>
+  </div>
+</body>
+</html>
+  `;
+
+  try {
+    const response = await fetch('https://api.resend.com/emails', {
+      method: 'POST',
+      headers: {
+        'Authorization': `Bearer ${env.RESEND_API_KEY}`,
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        from: env.RESEND_FROM_EMAIL,
+        to: email,
+        subject: 'Your AI Background Remover Verification Code',
+        html: htmlContent,
+      }),
+    });
+
+    if (!response.ok) {
+      const error = await response.text();
+      console.error('Failed to send email:', error);
+      return false;
+    }
+
+    return true;
+  } catch (error) {
+    console.error('Email send error:', error);
+    return false;
+  }
 }
 
 // ─── Google OAuth helpers ────────────────────────────────
@@ -550,7 +620,7 @@ async function handleLogin(request: Request, env: Env): Promise<Response> {
   }
 }
 
-// POST: Register
+// POST: Register (Step 1 - Send verification code)
 async function handleRegister(request: Request, env: Env): Promise<Response> {
   try {
     const { email, password } = await request.json();
@@ -562,30 +632,149 @@ async function handleRegister(request: Request, env: Env): Promise<Response> {
       );
     }
 
-    // Check if user exists
-    const existing = await env.DB
+    // Validate email format
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!emailRegex.test(email)) {
+      return jsonResponse(
+        { success: false, message: 'Invalid email format' },
+        400
+      );
+    }
+
+    // Check if user already exists in users table
+    const existingUser = await env.DB
       .prepare('SELECT id FROM users WHERE email = ?')
       .bind(email)
       .first();
 
-    if (existing) {
+    if (existingUser) {
       return jsonResponse(
         { success: false, message: 'Email already registered' },
         409
       );
     }
 
-    const hashedPassword = await hashPassword(password);
-    const userId = generateId();
+    // Check if there's a pending registration with this email
+    const existingPending = await env.DB
+      .prepare('SELECT id FROM pending_users WHERE email = ?')
+      .bind(email)
+      .first();
 
+    if (existingPending) {
+      // Delete old pending registration
+      await env.DB
+        .prepare('DELETE FROM pending_users WHERE email = ?')
+        .bind(email)
+        .run();
+    }
+
+    // Generate verification code and hash password
+    const verificationCode = generateVerificationCode();
+    const hashedPassword = await hashPassword(password);
+    const pendingUserId = generateId();
+    const expiresAt = new Date(Date.now() + 10 * 60 * 1000).toISOString(); // 10 minutes
+
+    // Store in pending_users table
+    await env.DB
+      .prepare(`
+        INSERT INTO pending_users (id, email, password, verification_code, expires_at)
+        VALUES (?, ?, ?, ?, ?)
+      `)
+      .bind(pendingUserId, email, hashedPassword, verificationCode, expiresAt)
+      .run();
+
+    // Send verification email
+    const emailSent = await sendVerificationEmail(env, email, verificationCode);
+
+    if (!emailSent) {
+      // Clean up if email failed
+      await env.DB
+        .prepare('DELETE FROM pending_users WHERE id = ?')
+        .bind(pendingUserId)
+        .run();
+      return jsonResponse(
+        { success: false, message: 'Failed to send verification email. Please try again.' },
+        500
+      );
+    }
+
+    return jsonResponse({
+      success: true,
+      message: 'Verification code sent to your email',
+      email: email,
+      pendingUserId: pendingUserId,
+    });
+  } catch (error) {
+    console.error('Register error:', error);
+    return jsonResponse(
+      { success: false, message: 'Registration failed' },
+      500
+    );
+  }
+}
+
+// POST: Verify email (Step 2 - Create user after verification)
+async function handleVerify(request: Request, env: Env): Promise<Response> {
+  try {
+    const { email, code } = await request.json();
+
+    if (!email || !code) {
+      return jsonResponse(
+        { success: false, message: 'Email and verification code are required' },
+        400
+      );
+    }
+
+    // Find pending user
+    const pendingUser = await env.DB
+      .prepare('SELECT * FROM pending_users WHERE email = ?')
+      .bind(email)
+      .first();
+
+    if (!pendingUser) {
+      return jsonResponse(
+        { success: false, message: 'No pending registration found. Please register again.' },
+        404
+      );
+    }
+
+    // Check if expired
+    if (new Date(pendingUser.expires_at) < new Date()) {
+      await env.DB
+        .prepare('DELETE FROM pending_users WHERE id = ?')
+        .bind(pendingUser.id)
+        .run();
+      return jsonResponse(
+        { success: false, message: 'Verification code expired. Please register again.' },
+        400
+      );
+    }
+
+    // Check if code matches
+    if (pendingUser.verification_code !== code) {
+      return jsonResponse(
+        { success: false, message: 'Invalid verification code' },
+        400
+      );
+    }
+
+    // Create actual user
+    const userId = generateId();
     await env.DB
       .prepare(`
         INSERT INTO users (id, email, password, free_quota, paid_credits)
         VALUES (?, ?, ?, 10, 0)
       `)
-      .bind(userId, email, hashedPassword)
+      .bind(userId, email, pendingUser.password)
       .run();
 
+    // Clean up pending user
+    await env.DB
+      .prepare('DELETE FROM pending_users WHERE id = ?')
+      .bind(pendingUser.id)
+      .run();
+
+    // Issue token
     const token = createToken(userId);
 
     return jsonResponse({
@@ -604,9 +793,72 @@ async function handleRegister(request: Request, env: Env): Promise<Response> {
       token,
     });
   } catch (error) {
-    console.error('Register error:', error);
+    console.error('Verify error:', error);
     return jsonResponse(
-      { success: false, message: 'Registration failed' },
+      { success: false, message: 'Verification failed' },
+      500
+    );
+  }
+}
+
+// POST: Resend verification code
+async function handleResendCode(request: Request, env: Env): Promise<Response> {
+  try {
+    const { email } = await request.json();
+
+    if (!email) {
+      return jsonResponse(
+        { success: false, message: 'Email is required' },
+        400
+      );
+    }
+
+    // Find pending user
+    const pendingUser = await env.DB
+      .prepare('SELECT * FROM pending_users WHERE email = ?')
+      .bind(email)
+      .first();
+
+    if (!pendingUser) {
+      return jsonResponse(
+        { success: false, message: 'No pending registration found. Please register again.' },
+        404
+      );
+    }
+
+    // Generate new verification code
+    const verificationCode = generateVerificationCode();
+    const expiresAt = new Date(Date.now() + 10 * 60 * 1000).toISOString();
+
+    // Update pending user
+    await env.DB
+      .prepare(`
+        UPDATE pending_users 
+        SET verification_code = ?, expires_at = ?
+        WHERE id = ?
+      `)
+      .bind(verificationCode, expiresAt, pendingUser.id)
+      .run();
+
+    // Send verification email
+    const emailSent = await sendVerificationEmail(env, email, verificationCode);
+
+    if (!emailSent) {
+      return jsonResponse(
+        { success: false, message: 'Failed to send verification email. Please try again.' },
+        500
+      );
+    }
+
+    return jsonResponse({
+      success: true,
+      message: 'Verification code sent',
+      email: email,
+    });
+  } catch (error) {
+    console.error('Resend code error:', error);
+    return jsonResponse(
+      { success: false, message: 'Failed to resend code' },
       500
     );
   }
@@ -962,6 +1214,18 @@ export default {
       if (path === '/api/auth/register') {
         return request.method === 'POST'
           ? await handleRegister(request, env)
+          : new Response('Method not allowed', { status: 405 });
+      }
+
+      if (path === '/api/auth/verify') {
+        return request.method === 'POST'
+          ? await handleVerify(request, env)
+          : new Response('Method not allowed', { status: 405 });
+      }
+
+      if (path === '/api/auth/resend-code') {
+        return request.method === 'POST'
+          ? await handleResendCode(request, env)
           : new Response('Method not allowed', { status: 405 });
       }
     }
