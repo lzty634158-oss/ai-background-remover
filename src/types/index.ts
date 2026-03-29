@@ -181,4 +181,21 @@ export interface Translation {
   verifying?: string;
   setPassword?: string;
   passwordNotSet?: string;
+  // New register flow
+  sendCode?: string;
+  enterEmail?: string;
+  emailWillVerify?: string;
+  checkInbox?: string;
+  noCode?: string;
+  changeEmail?: string;
+  confirmPassword?: string;
+  completeRegistration?: string;
+  almostDone?: string;
+  emailVerified?: string;
+  backToVerify?: string;
+  invalidEmail?: string;
+  enter6Digit?: string;
+  passwordMinLength?: string;
+  verifyAndContinue?: string;
+  alreadyHaveAccount?: string;
 }
