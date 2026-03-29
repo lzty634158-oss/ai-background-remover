@@ -304,7 +304,7 @@ export default function RegisterPage() {
                 {digits.map((d, idx) => (
                   <input
                     key={idx}
-                    ref={el => codeInputRefs.current[idx] = el}
+                    ref={el => { codeInputRefs.current[idx] = el; }}
                     type="text"
                     inputMode="numeric"
                     maxLength={1}
