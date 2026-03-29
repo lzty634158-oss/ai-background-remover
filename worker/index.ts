@@ -63,13 +63,43 @@ function generateVerificationCode(): string {
   return Math.floor(100000 + Math.random() * 900000).toString();
 }
 
+async function getResendConfig(env: Env): Promise<{apiKey: string; fromEmail: string} | null> {
+  // Try environment variables first (if set as secrets)
+  if (env.RESEND_API_KEY && env.RESEND_FROM_EMAIL) {
+    return { apiKey: env.RESEND_API_KEY, fromEmail: env.RESEND_FROM_EMAIL };
+  }
+  // Fallback: read from D1 app_config table
+  try {
+    const apiKeyRow = await env.DB
+      .prepare('SELECT value FROM app_config WHERE key = ?')
+      .bind('resend_api_key')
+      .first();
+    const fromEmailRow = await env.DB
+      .prepare('SELECT value FROM app_config WHERE key = ?')
+      .bind('resend_from_email')
+      .first();
+    const enabledRow = await env.DB
+      .prepare('SELECT value FROM app_config WHERE key = ?')
+      .bind('resend_enabled')
+      .first();
+    if (apiKeyRow?.value && fromEmailRow?.value && enabledRow?.value === 'true') {
+      return { apiKey: apiKeyRow.value, fromEmail: fromEmailRow.value };
+    }
+  } catch (e) {
+    console.error('Failed to read Resend config from D1:', e);
+  }
+  return null;
+}
+
 async function sendVerificationEmail(env: Env, email: string, code: string): Promise<boolean> {
-  if (!env.RESEND_API_KEY || !env.RESEND_FROM_EMAIL) {
-    console.error('Resend API not configured');
+  const config = await getResendConfig(env);
+  if (!config) {
+    console.error('Resend API not configured (no env vars and no D1 config)');
     return false;
   }
 
-  const frontendUrl = env.FRONTEND_URL || 'https://ai-background-remover-5h2.pages.dev';
+  const { apiKey: resendApiKey, fromEmail: resendFromEmail } = config;
+  const frontendUrl = env.FRONTEND_URL || 'https://ai-backgroundremover.space';
 
   const htmlContent = `
 <!DOCTYPE html>
@@ -98,20 +128,26 @@ async function sendVerificationEmail(env: Env, email: string, code: string): Pro
 </html>
   `;
 
+  const controller = new AbortController();
+  const timeoutId = setTimeout(() => controller.abort(), 10000); // 10 second timeout
+
   try {
     const response = await fetch('https://api.resend.com/emails', {
       method: 'POST',
       headers: {
-        'Authorization': `Bearer ${env.RESEND_API_KEY}`,
+        'Authorization': `Bearer ${resendApiKey}`,
         'Content-Type': 'application/json',
       },
       body: JSON.stringify({
-        from: env.RESEND_FROM_EMAIL,
+        from: resendFromEmail,
         to: email,
         subject: 'Your AI Background Remover Verification Code',
         html: htmlContent,
       }),
+      signal: controller.signal,
     });
+
+    clearTimeout(timeoutId);
 
     if (!response.ok) {
       const error = await response.text();
@@ -120,8 +156,13 @@ async function sendVerificationEmail(env: Env, email: string, code: string): Pro
     }
 
     return true;
-  } catch (error) {
-    console.error('Email send error:', error);
+  } catch (error: any) {
+    clearTimeout(timeoutId);
+    if (error.name === 'AbortError') {
+      console.error('Email send timeout');
+    } else {
+      console.error('Email send error:', error.message);
+    }
     return false;
   }
 }
@@ -801,6 +842,134 @@ async function handleVerify(request: Request, env: Env): Promise<Response> {
   }
 }
 
+// POST: Send-only verification code (no registration yet)
+async function handleSendCodeOnly(request: Request, env: Env): Promise<Response> {
+  try {
+    const { email } = await request.json();
+
+    if (!email || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+      return jsonResponse({ success: false, message: 'Invalid email format' }, 400);
+    }
+
+    // Check if user already exists
+    const existing = await env.DB
+      .prepare('SELECT id FROM users WHERE email = ?')
+      .bind(email)
+      .first();
+
+    if (existing) {
+      return jsonResponse({ success: false, message: 'Email already registered' }, 409);
+    }
+
+    // Check for existing pending verification
+    const existingPending = await env.DB
+      .prepare('SELECT * FROM email_verifications WHERE email = ?')
+      .bind(email)
+      .first();
+
+    if (existingPending) {
+      // Delete old one
+      await env.DB
+        .prepare('DELETE FROM email_verifications WHERE email = ?')
+        .bind(email)
+        .run();
+    }
+
+    const code = generateVerificationCode();
+    const pendingId = generateId();
+    const expiresAt = new Date(Date.now() + 10 * 60 * 1000).toISOString();
+
+    await env.DB
+      .prepare(`
+        INSERT INTO email_verifications (id, email, verification_code, expires_at)
+        VALUES (?, ?, ?, ?)
+      `)
+      .bind(pendingId, email, code, expiresAt)
+      .run();
+
+    const sent = await sendVerificationEmail(env, email, code);
+    if (!sent) {
+      await env.DB.prepare('DELETE FROM email_verifications WHERE id = ?').bind(pendingId).run();
+      return jsonResponse({ success: false, message: 'Failed to send email. Check address or try again.' }, 500);
+    }
+
+    return jsonResponse({ success: true, message: 'Code sent', email });
+  } catch (error) {
+    console.error('Send code error:', error);
+    return jsonResponse({ success: false, message: 'Failed to send code' }, 500);
+  }
+}
+
+// POST: Set password after email verification
+async function handleSetPassword(request: Request, env: Env): Promise<Response> {
+  try {
+    const { email, password, verification_code } = await request.json();
+
+    if (!email || !password || !verification_code) {
+      return jsonResponse({ success: false, message: 'Email, code and password are required' }, 400);
+    }
+
+    if (password.length < 6) {
+      return jsonResponse({ success: false, message: 'Password must be at least 6 characters' }, 400);
+    }
+
+    // Find pending verification
+    const pending = await env.DB
+      .prepare('SELECT * FROM email_verifications WHERE email = ?')
+      .bind(email)
+      .first();
+
+    if (!pending) {
+      return jsonResponse({ success: false, message: 'No verification found. Please start over.' }, 400);
+    }
+
+    if (new Date(pending.expires_at) < new Date()) {
+      await env.DB.prepare('DELETE FROM email_verifications WHERE email = ?').bind(email).run();
+      return jsonResponse({ success: false, message: 'Code expired. Please request a new one.' }, 400);
+    }
+
+    if (pending.verification_code !== verification_code) {
+      return jsonResponse({ success: false, message: 'Incorrect verification code' }, 400);
+    }
+
+    // Create user
+    const hashedPassword = await hashPassword(password);
+    const userId = generateId();
+
+    await env.DB
+      .prepare(`
+        INSERT INTO users (id, email, password, free_quota, paid_credits)
+        VALUES (?, ?, ?, 10, 0)
+      `)
+      .bind(userId, email, hashedPassword)
+      .run();
+
+    // Clean up
+    await env.DB.prepare('DELETE FROM email_verifications WHERE email = ?').bind(email).run();
+
+    const token = createToken(userId);
+
+    return jsonResponse({
+      success: true,
+      token,
+      user: {
+        id: userId,
+        email,
+        name: '',
+        avatar_url: '',
+        bio: '',
+        phone: '',
+        freeQuota: 10,
+        paidCredits: 0,
+        createdAt: new Date().toISOString(),
+      },
+    });
+  } catch (error) {
+    console.error('Set password error:', error);
+    return jsonResponse({ success: false, message: 'Failed to set password' }, 500);
+  }
+}
+
 // POST: Resend verification code
 async function handleResendCode(request: Request, env: Env): Promise<Response> {
   try {
@@ -1226,6 +1395,18 @@ export default {
       if (path === '/api/auth/resend-code') {
         return request.method === 'POST'
           ? await handleResendCode(request, env)
+          : new Response('Method not allowed', { status: 405 });
+      }
+
+      if (path === '/api/auth/send-code') {
+        return request.method === 'POST'
+          ? await handleSendCodeOnly(request, env)
+          : new Response('Method not allowed', { status: 405 });
+      }
+
+      if (path === '/api/auth/set-password') {
+        return request.method === 'POST'
+          ? await handleSetPassword(request, env)
           : new Response('Method not allowed', { status: 405 });
       }
     }

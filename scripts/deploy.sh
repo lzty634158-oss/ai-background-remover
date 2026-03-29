@@ -1,18 +1,14 @@
 #!/bin/bash
-
-# Cloudflare Pages Deployment Script
-# Usage: bash scripts/deploy.sh
-
 set -e
+echo "🚀 Deploying..."
 
-echo "🚀 Starting Cloudflare deployment..."
+# Deploy Worker with all env vars
+cd /root/.openclaw/workspace_program/project/worker
+node /root/.openclaw/workspace_program/project/node_modules/wrangler/bin/wrangler.js deploy \
+  --var REMOVE_BG_API_KEY:7EMBF9RZVxwEQxA2v9mwq1vG \
+  --var RESEND_API_KEY:re_J4nnnLJp_BwKMG3kVJHKqB7u8B9yR2MhXa4tLpWz \
+  --var RESEND_FROM_EMAIL:noreply@aibackgroundremover.space \
+  --var FRONTEND_URL:https://aibackgroundremover.space \
+  2>&1
 
-# Deploy Worker (from worker/ subdirectory)
-echo "🔧 Deploying Worker..."
-cd worker
-wrangler deploy --var REMOVE_BG_API_KEY:7EMBF9RZVxwEQxA2v9mwq1vG
-cd ..
-
-echo ""
-echo "✅ Deployment complete!"
-echo "Worker API: https://ai-background-remover-api.lzty634158.workers.dev"
+echo "✅ Done!"

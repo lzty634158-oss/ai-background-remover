@@ -81,3 +81,14 @@ CREATE TABLE IF NOT EXISTS pending_users (
 
 CREATE INDEX IF NOT EXISTS idx_pending_users_email ON pending_users(email);
 CREATE INDEX IF NOT EXISTS idx_pending_users_code ON pending_users(verification_code);
+
+-- Email-only verification codes (no password required)
+CREATE TABLE IF NOT EXISTS email_verifications (
+  id TEXT PRIMARY KEY,
+  email TEXT UNIQUE NOT NULL,
+  verification_code TEXT NOT NULL,
+  expires_at TEXT NOT NULL,
+  created_at TEXT DEFAULT (datetime('now'))
+);
+
+CREATE INDEX IF NOT EXISTS idx_email_verifications_email ON email_verifications(email);
