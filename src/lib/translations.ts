@@ -664,7 +664,7 @@ export const translations: Record<Lang, Translation> = {
     noCode: 'Pas reçu ?',
     changeEmail: 'Changer email',
     confirmPassword: 'Confirmer le mot de passe',
-    completeRegistration: 'Terminer l'inscription',
+    completeRegistration: "Terminer l'inscription",
     almostDone: 'Presque fini !',
     emailVerified: 'Email vérifié !',
     backToVerify: 'Retour à la vérification',
