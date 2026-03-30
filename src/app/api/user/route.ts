@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { safeJson } from '@/lib/api';
 export const runtime = 'edge';
 
 const WORKER_URL = 'https://ai-background-remover-api.lzty634158.workers.dev';
@@ -19,7 +20,11 @@ export async function GET(request: NextRequest) {
 
   try {
     const response = await fetch(targetUrl, { headers: { Authorization: authHeader } });
-    const data = await response.json();
+    const { data, error } = await safeJson(response);
+    if (error) {
+      console.error('Proxy JSON parse error:', error);
+      return NextResponse.json({ success: false, message: error }, { status: response.status });
+    }
     return NextResponse.json(data, { status: response.status });
   } catch (error) {
     console.error('Proxy error:', error);
@@ -43,7 +48,11 @@ export async function POST(request: NextRequest) {
       headers: { 'Content-Type': 'application/json', Authorization: authHeader },
       body: JSON.stringify(body),
     });
-    const data = await response.json();
+    const { data, error } = await safeJson(response);
+    if (error) {
+      console.error('Proxy JSON parse error:', error);
+      return NextResponse.json({ success: false, message: error }, { status: response.status });
+    }
     return NextResponse.json(data, { status: response.status });
   } catch (error) {
     console.error('Proxy error:', error);

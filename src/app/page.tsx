@@ -9,6 +9,22 @@ import { Lang, Translation } from "@/types";
 
 const WORKER_URL = 'https://ai-background-remover-api.lzty634158.workers.dev';
 
+// Safe JSON parse — returns null if response is not JSON (e.g. 500 HTML page)
+async function safeJson(response: Response): Promise<{data: unknown; error: string|null}> {
+  const ct = response.headers.get('content-type') || '';
+  if (!ct.includes('application/json')) {
+    const text = await response.text();
+    return { data: null, error: `Server error (${response.status}): ${text.slice(0, 200)}` };
+  }
+  try {
+    return { data: await response.json(), error: null };
+  } catch {
+    return { data: null, error: `Failed to parse response (status ${response.status})` };
+  }
+}
+
+
+
 export default function Home() {
   const [lang, setLang] = useState<Lang>("zh");
   const [t, setT] = useState<Translation>(translations.zh);
@@ -37,12 +53,16 @@ export default function Home() {
       const response = await fetch(`${WORKER_URL}/api/images`, {
         headers: token ? { 'Authorization': `Bearer ${token}` } : {},
       });
-      const data = await response.json();
-      if (data.isLoggedIn) {
-        setIsLoggedIn(true);
-        setRemainingQuota(data.remainingQuota);
-      } else {
-        setGuestTrialsRemaining(data.guestTrialsRemaining || 0);
+      const { data, error } = await safeJson(response);
+      if (error) { console.error('Failed to fetch quota:', error); return; }
+      if (data && typeof data === 'object' && 'isLoggedIn' in data) {
+        const d = data as any;
+        if (d.isLoggedIn) {
+          setIsLoggedIn(true);
+          setRemainingQuota(d.remainingQuota ?? 0);
+        } else {
+          setGuestTrialsRemaining(d.guestTrialsRemaining ?? 0);
+        }
       }
     } catch (e) {
       console.error('Failed to fetch quota:', e);
@@ -76,20 +96,21 @@ export default function Home() {
         body: formData,
       });
 
-      const data = await response.json();
+      const { data, error } = await safeJson(response);
 
-      if (!response.ok) {
-        throw new Error(data.message || t.errorApi);
+      if (!response.ok || error) {
+        throw new Error((data as any)?.message || error || t.errorApi);
       }
 
       // Worker returns imageData as base64 data URL (data:image/png;base64,...)
-      setResultImage(data.imageData);
+      const d = data as any;
+      setResultImage(d.imageData);
       
-      if (data.remainingQuota !== undefined) {
-        setRemainingQuota(data.remainingQuota);
+      if (d.remainingQuota !== undefined) {
+        setRemainingQuota(d.remainingQuota);
       }
-      if (data.guestTrialsRemaining !== undefined) {
-        setGuestTrialsRemaining(data.guestTrialsRemaining);
+      if (d.guestTrialsRemaining !== undefined) {
+        setGuestTrialsRemaining(d.guestTrialsRemaining);
       }
     } catch (err) {
       setError(err instanceof Error ? err.message : t.errorApi);

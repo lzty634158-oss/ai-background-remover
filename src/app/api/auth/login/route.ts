@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { safeJson } from '@/lib/api';
 export const runtime = 'edge';
 
 function getWorkerUrl() {
@@ -21,7 +22,11 @@ export async function POST(request: NextRequest) {
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(body),
     });
-    const data = await response.json();
+    const { data, error } = await safeJson(response);
+    if (error) {
+      console.error('Proxy JSON parse error:', error);
+      return NextResponse.json({ success: false, message: error }, { status: response.status });
+    }
     return NextResponse.json(data, { status: response.status });
   } catch (error) {
     console.error('Proxy error:', error);

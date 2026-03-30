@@ -8,6 +8,20 @@ import AppHeader from '@/components/AppHeader';
 import { translations, type Lang, type Translation } from '@/lib/translations';
 
 type RegisterStep = 'email' | 'verify' | 'password';
+// Safe JSON parse — returns null if response is not JSON (e.g. 500 HTML page)
+async function safeJson(response: Response): Promise<{data: any; error: string|null}> {
+  const ct = response.headers.get('content-type') || '';
+  if (!ct.includes('application/json')) {
+    const text = await response.text();
+    return { data: null, error: `Server error (${response.status}): ${text.slice(0, 200)}` };
+  }
+  try {
+    return { data: await response.json(), error: null };
+  } catch {
+    return { data: null, error: `Failed to parse response (status ${response.status})` };
+  }
+}
+
 
 export default function RegisterPage() {
   const router = useRouter();
@@ -68,10 +82,11 @@ export default function RegisterPage() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ email, password: 'placeholder_temp' }),
       });
-      const data = await response.json();
+      const { data, error: jsonError } = await safeJson(response);
+      if (jsonError) throw new Error(jsonError);
 
       if (!response.ok) {
-        throw new Error(data.message || 'Failed to send code');
+        throw new Error(data?.message || 'Failed to send code');
       }
 
       setEmailSent(true);
@@ -100,10 +115,10 @@ export default function RegisterPage() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ email, code: verificationCode }),
       });
-      const data = await response.json();
-
+      const { data, error: jsonError } = await safeJson(response);
+      if (jsonError) throw new Error(jsonError);
       if (!response.ok) {
-        throw new Error(data.message || 'Verification failed');
+        throw new Error(data?.message || 'Verification failed');
       }
 
       // Store temp token to complete registration with password
@@ -127,8 +142,9 @@ export default function RegisterPage() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ email }),
       });
-      const data = await response.json();
-      if (!response.ok) throw new Error(data.message || 'Failed to resend');
+      const { data, error: jsonError } = await safeJson(response);
+      if (jsonError) throw new Error(jsonError);
+      if (!response.ok) throw new Error(data?.message || 'Failed to resend');
       setCooldown(60);
       setVerificationCode('');
       codeInputRefs.current[0]?.focus();
@@ -169,9 +185,9 @@ export default function RegisterPage() {
       // If no complete-registration endpoint, the verify already created the account
       // Just log in with the token we already have
       if (response.ok) {
-        const data = await response.json();
-        localStorage.setItem('token', data.token || pendingToken || '');
-        localStorage.setItem('user', JSON.stringify(data.user || {}));
+        const { data: regData } = await safeJson(response);
+        localStorage.setItem('token', regData?.token || pendingToken || '');
+        localStorage.setItem('user', JSON.stringify(regData?.user || {}));
       } else {
         // Verify step already created account with temp password
         // Try to update password
@@ -182,9 +198,9 @@ export default function RegisterPage() {
         });
 
         if (loginResp.ok) {
-          const loginData = await loginResp.json();
-          localStorage.setItem('token', loginData.token);
-          localStorage.setItem('user', JSON.stringify(loginData.user));
+          const { data: loginData } = await safeJson(loginResp);
+          localStorage.setItem('token', loginData?.token || '');
+          localStorage.setItem('user', JSON.stringify(loginData?.user || {}));
         } else {
           // Fallback: just use the token we got from verify
           localStorage.setItem('token', pendingToken || '');

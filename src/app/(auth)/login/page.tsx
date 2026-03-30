@@ -7,6 +7,21 @@ import { Button, Input, Card } from '@/components/ui';
 import AppHeader from '@/components/AppHeader';
 import { translations, type Lang, type Translation } from '@/lib/translations';
 
+
+// Safe JSON parse — returns null if response is not JSON (e.g. 500 HTML page)
+async function safeJson(response: Response): Promise<{data: any; error: string|null}> {
+  const ct = response.headers.get('content-type') || '';
+  if (!ct.includes('application/json')) {
+    const text = await response.text();
+    return { data: null, error: `Server error (${response.status}): ${text.slice(0, 200)}` };
+  }
+  try {
+    return { data: await response.json(), error: null };
+  } catch {
+    return { data: null, error: `Failed to parse response (status ${response.status})` };
+  }
+}
+
 const WORKER_URL = 'https://ai-background-remover-api.lzty634158.workers.dev';
 
 const PAGES_BASE = 'https://ai-background-remover-5h2.pages.dev';
@@ -73,14 +88,14 @@ export default function LoginPage() {
         body: JSON.stringify({ email, password }),
       });
 
-      const data = await response.json();
-
+      const { data, error: jsonError } = await safeJson(response);
+      if (jsonError) throw new Error(jsonError);
       if (!response.ok) {
-        throw new Error(data.message || 'Login failed');
+        throw new Error(data?.message || 'Login failed');
       }
 
-      localStorage.setItem('token', data.token);
-      localStorage.setItem('user', JSON.stringify(data.user));
+      localStorage.setItem('token', data?.token || '');
+      localStorage.setItem('user', JSON.stringify(data?.user || {}));
       router.push('/');
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Login failed');
