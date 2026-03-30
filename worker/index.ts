@@ -7,8 +7,8 @@ export interface Env {
   GOOGLE_CLIENT_ID: string;
   GOOGLE_CLIENT_SECRET: string;
   FRONTEND_URL: string;
-  RESEND_API_KEY: string;
-  RESEND_FROM_EMAIL: string;
+  RESEND_API_KEY?: string;
+  RESEND_FROM_EMAIL?: string;
 }
 
 const corsHeaders = {
@@ -63,7 +63,7 @@ function generateVerificationCode(): string {
   return Math.floor(100000 + Math.random() * 900000).toString();
 }
 
-async function getResendConfig(env: Env): Promise<{apiKey: string; fromEmail: string} | null> {
+async function getResendConfig(env: Env): Promise<{apiKey: string; fromEmail: string} | {error: string}> {
   // Try environment variables first (if set as secrets)
   if (env.RESEND_API_KEY && env.RESEND_FROM_EMAIL) {
     return { apiKey: env.RESEND_API_KEY, fromEmail: env.RESEND_FROM_EMAIL };
@@ -85,17 +85,21 @@ async function getResendConfig(env: Env): Promise<{apiKey: string; fromEmail: st
     if (apiKeyRow?.value && fromEmailRow?.value && enabledRow?.value === 'true') {
       return { apiKey: apiKeyRow.value, fromEmail: fromEmailRow.value };
     }
+    if (!apiKeyRow?.value) return { error: 'Resend API key not configured (env var RESEND_API_KEY or D1 resend_api_key)' };
+    if (!fromEmailRow?.value) return { error: 'Resend FROM email not configured (env var RESEND_FROM_EMAIL or D1 resend_from_email)' };
+    if (enabledRow?.value !== 'true') return { error: 'Resend is not enabled in D1 app_config (set resend_enabled=true)' };
   } catch (e) {
     console.error('Failed to read Resend config from D1:', e);
+    return { error: 'Failed to read Resend config from D1 database' };
   }
-  return null;
+  return { error: 'Resend API key and FROM email not configured' };
 }
 
-async function sendVerificationEmail(env: Env, email: string, code: string): Promise<boolean> {
+async function sendVerificationEmail(env: Env, email: string, code: string): Promise<{success: boolean; error?: string}> {
   const config = await getResendConfig(env);
-  if (!config) {
-    console.error('Resend API not configured (no env vars and no D1 config)');
-    return false;
+  if ('error' in config) {
+    console.error('Resend config error:', config.error);
+    return { success: false, error: config.error };
   }
 
   const { apiKey: resendApiKey, fromEmail: resendFromEmail } = config;
@@ -152,18 +156,19 @@ async function sendVerificationEmail(env: Env, email: string, code: string): Pro
     if (!response.ok) {
       const error = await response.text();
       console.error('Failed to send email:', error);
-      return false;
+      return { success: false, error: 'Resend API error (' + response.status + '): ' + error.slice(0, 200) };
     }
 
-    return true;
+    return { success: true };
   } catch (error: any) {
     clearTimeout(timeoutId);
     if (error.name === 'AbortError') {
       console.error('Email send timeout');
+      return { success: false, error: 'Email service timeout (Resend API took too long)' };
     } else {
       console.error('Email send error:', error.message);
+      return { success: false, error: 'Email service error: ' + error.message };
     }
-    return false;
   }
 }
 
@@ -725,16 +730,18 @@ async function handleRegister(request: Request, env: Env): Promise<Response> {
       .run();
 
     // Send verification email
-    const emailSent = await sendVerificationEmail(env, email, verificationCode);
+    const emailResult = await sendVerificationEmail(env, email, verificationCode);
 
-    if (!emailSent) {
+    if (!emailResult.success) {
       // Clean up if email failed
       await env.DB
         .prepare('DELETE FROM pending_users WHERE id = ?')
         .bind(pendingUserId)
         .run();
+      const reason = emailResult.error || 'Failed to send verification email. Please try again.';
+      console.error('Registration email failed:', reason);
       return jsonResponse(
-        { success: false, message: 'Failed to send verification email. Please try again.' },
+        { success: false, message: reason },
         500
       );
     }
@@ -887,10 +894,10 @@ async function handleSendCodeOnly(request: Request, env: Env): Promise<Response>
       .bind(pendingId, email, code, expiresAt)
       .run();
 
-    const sent = await sendVerificationEmail(env, email, code);
-    if (!sent) {
+    const sentResult = await sendVerificationEmail(env, email, code);
+    if (!sentResult.success) {
       await env.DB.prepare('DELETE FROM email_verifications WHERE id = ?').bind(pendingId).run();
-      return jsonResponse({ success: false, message: 'Failed to send email. Check address or try again.' }, 500);
+      return jsonResponse({ success: false, message: sentResult.error || 'Failed to send email. Check address or try again.' }, 500);
     }
 
     return jsonResponse({ success: true, message: 'Code sent', email });
@@ -1010,11 +1017,11 @@ async function handleResendCode(request: Request, env: Env): Promise<Response> {
       .run();
 
     // Send verification email
-    const emailSent = await sendVerificationEmail(env, email, verificationCode);
+    const emailResult = await sendVerificationEmail(env, email, verificationCode);
 
-    if (!emailSent) {
+    if (!emailResult.success) {
       return jsonResponse(
-        { success: false, message: 'Failed to send verification email. Please try again.' },
+        { success: false, message: emailResult.error || 'Failed to send verification email. Please try again.' },
         500
       );
     }
