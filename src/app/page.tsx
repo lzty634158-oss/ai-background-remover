@@ -7,7 +7,7 @@ import Result from "@/components/Result";
 import { translations } from "@/components/LanguageSwitch";
 import { Lang, Translation } from "@/types";
 
-const WORKER_URL = 'https://ai-background-remover-api.lzty634158.workers.dev';
+const WORKER_URL = process.env.NEXT_PUBLIC_API_URL;
 
 // Safe JSON parse — returns null if response is not JSON (e.g. 500 HTML page)
 async function safeJson(response: Response): Promise<{data: unknown; error: string|null}> {

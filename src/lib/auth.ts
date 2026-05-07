@@ -4,7 +4,7 @@
  */
 
 // Always call the standalone Worker directly — it has D1 bound
-const WORKER_URL = 'https://ai-background-remover-api.lzty634158.workers.dev';
+const WORKER_URL = '';
 
 // ─── Types ───────────────────────────────────────────────
 export interface User {

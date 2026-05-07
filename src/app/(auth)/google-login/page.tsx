@@ -3,7 +3,7 @@
 import { Suspense, useEffect } from 'react';
 import { useSearchParams } from 'next/navigation';
 
-const WORKER_URL = 'https://ai-background-remover-api.lzty634158.workers.dev';
+const WORKER_URL = '';
 
 function GoogleAuthInner() {
   const searchParams = useSearchParams();

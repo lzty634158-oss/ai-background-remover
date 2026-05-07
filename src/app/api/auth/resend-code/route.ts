@@ -4,7 +4,7 @@ export const runtime = 'edge';
 
 function getWorkerUrl() {
   if (process.env.NODE_ENV === 'production') {
-    return 'https://ai-background-remover-api.lzty634158.workers.dev';
+    return '';
   }
   return process.env.WORKER_DEV_URL || 'http://localhost:8787';
 }

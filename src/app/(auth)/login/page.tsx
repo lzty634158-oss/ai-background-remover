@@ -22,7 +22,7 @@ async function safeJson(response: Response): Promise<{data: any; error: string|n
   }
 }
 
-const WORKER_URL = 'https://ai-background-remover-api.lzty634158.workers.dev';
+const WORKER_URL = '';
 
 const PAGES_BASE = 'https://ai-background-remover-5h2.pages.dev';
 

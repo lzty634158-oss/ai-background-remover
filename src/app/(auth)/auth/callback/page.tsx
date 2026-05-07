@@ -21,7 +21,7 @@ export default function AuthCallbackPage() {
     if (token) {
       localStorage.setItem('token', token);
       // Fetch user info and store
-      fetch('https://ai-background-remover-api.lzty634158.workers.dev/api/user', {
+      fetch('/api/user', {
         headers: { Authorization: `Bearer ${token}` },
       })
         .then((res) => res.json())

@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { safeJson } from '@/lib/api';
 export const runtime = 'edge';
 
-const WORKER_URL = 'https://ai-background-remover-api.lzty634158.workers.dev';
+const WORKER_URL = '';
 
 function getWorkerUrl() {
   if (process.env.NODE_ENV === 'production') return WORKER_URL;
